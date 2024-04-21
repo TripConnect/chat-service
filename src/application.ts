@@ -70,14 +70,28 @@ async function createConversation(call: any, callback: any) {
 async function createChatMessage(call: any, callback: any) {
     try {
         let { conversationId, fromUserId, messageContent } = call.request;
+
+        let conversation = await Conversations.findOne({ conversationId });
+        if (!conversation) {
+            callback({
+                code: grpc.status.INVALID_ARGUMENT,
+                message: 'Conversation not found'
+            });
+            return;
+        }
+
         let message = await Messages.create({
             conversationId,
             fromUserId,
             messageContent,
         });
         let messageResponse = {
-
-        }
+            id: message.id,
+            conversationId: message.conversationId,
+            fromUserId: message.fromUserId,
+            messageContent: message.messageContent,
+            createdAt: message.createdAt,
+        };
         callback(null, messageResponse);
     } catch (error) {
         logger.error(`gRPC server stopped: ${error}`);
@@ -90,7 +104,7 @@ async function start() {
     try {
         await connect(process.env.MONGODB_CONNECTION_STRING as string);
         let server = new grpc.Server();
-        server.addService(backendProto.Chat.service, { CreateConversation: createConversation });
+        server.addService(backendProto.Chat.service, { CreateConversation: createConversation, CreateChatMessage: createChatMessage });
         server.bindAsync(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure(), (err: any, port: any) => {
             if (err != null) {
                 return console.error(err);
