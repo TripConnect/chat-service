@@ -1,0 +1,37 @@
+{
+  "name": "user-service",
+  "version": "1.0.0",
+  "description": "user-service",
+  "main": "application.ts",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.10.2",
+    "@grpc/grpc-js-xds": "^1.10.0",
+    "@grpc/proto-loader": "^0.6.0",
+    "@grpc/reflection": "^1.0.0",
+    "@types/node": "^20.12.7",
+    "async": "^1.5.2",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "google-protobuf": "^3.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.6.1",
+    "minimist": "^1.2.0",
+    "mongoose": "^8.3.2",
+    "uuid": "^9.0.1",
+    "winston": "^3.13.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node src/application.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/uuid": "^9.0.8",
+    "sequelize-cli": "^6.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
