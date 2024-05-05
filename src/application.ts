@@ -43,7 +43,7 @@ async function createConversation(call: any, callback: any) {
 
     let conversation: IConversation | null = null;
 
-    if(memberIds.length === 0) {
+    if (memberIds.length === 0) {
         callback({
             code: grpc.status.INVALID_ARGUMENT,
             message: 'Conversation members cannot be empty'
@@ -52,7 +52,7 @@ async function createConversation(call: any, callback: any) {
     }
 
     try {
-        switch(type) {
+        switch (type) {
             case ConversationType.PRIVATE:
                 name = null;
                 ownerId = null;
@@ -61,11 +61,11 @@ async function createConversation(call: any, callback: any) {
                     .findOne({ type: ConversationType.PRIVATE, members: { $all: memberIds } })
                     .exec();
 
-                if(existConversation) conversation = existConversation;
+                if (existConversation) conversation = existConversation;
                 break;
         }
 
-        if(conversation == null) {
+        if (conversation == null) {
             conversation = await Conversations.create({
                 conversationId: uuidv4(),
                 name,
@@ -75,7 +75,7 @@ async function createConversation(call: any, callback: any) {
                 lastMessageAt: null,
             });
         }
-        
+
         let conversationResponse: Conversation = {
             id: conversation.conversationId as string,
             type: conversation.type,
@@ -131,6 +131,7 @@ async function searchConversations(call: any, callback: any) {
 
         conversations = await Conversations
             .find({ members: { $in: memberIds } })
+            .sort({ createdAt: 1 })
             .skip(limit * (Math.abs(page) - 1))
             .limit(limit)
             .exec();
@@ -161,7 +162,53 @@ async function searchConversations(call: any, callback: any) {
                 }),
             });
         }
-        return result;
+        callback(null, { conversations: result });
+    } catch (error: any) {
+        logger.error(error.message);
+        callback(error, null);
+    }
+}
+
+async function findConversation(call: any, callback: any) {
+    try {
+        let { conversationId, page, limit } = call.request;
+        let conversation = await Conversations.findOne({ conversationId });
+
+        if(!conversation) {
+            callback({
+                code: grpc.status.NOT_FOUND,
+                message: 'Conversation not found'
+            });
+            return;
+        }
+
+        let messages = await Messages
+            .find({ conversationId })
+            .sort({ createdAt: page < 0 ? -1 : 1 })
+            .skip(limit * (Math.abs(page) - 1))
+            .limit(limit)
+            .exec();
+
+        let conversationResponse = {
+            id: conversation.conversationId,
+            name: conversation.name,
+            type: conversation.type,
+            createdBy: conversation.createdBy,
+            createdAt: conversation.createdAt,
+            lastMessageAt: conversation.lastMessageAt,
+            memberIds: conversation.members,
+            messages: messages.map(({ messageId, fromUserId, messageContent, createdAt }) => {
+                return {
+                    id: messageId,
+                    conversationId: conversation.conversationId,
+                    fromUserId,
+                    messageContent,
+                    createdAt,
+                }
+            }),
+        };
+
+        callback(null, conversationResponse);
     } catch (error: any) {
         logger.error(error.message);
         callback(error, null);
@@ -172,7 +219,12 @@ async function start() {
     try {
         await connect(process.env.MONGODB_CONNECTION_STRING as string);
         let server = new grpc.Server();
-        server.addService(backendProto.Chat.service, { CreateConversation: createConversation, CreateChatMessage: createChatMessage });
+        server.addService(backendProto.Chat.service, {
+            createConversation,
+            createChatMessage,
+            searchConversations,
+            findConversation,
+        });
         server.bindAsync(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure(), (err: any, port: any) => {
             if (err != null) {
                 return console.error(err);
