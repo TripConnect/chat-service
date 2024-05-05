@@ -6,7 +6,7 @@ export enum ConversationType {
 }
 
 // Define a TypeScript interface for the User document
-interface IConversation extends Document {
+export interface IConversation extends Document {
     conversationId: String,
     type: ConversationType,
     name: String,

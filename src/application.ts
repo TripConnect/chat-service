@@ -5,7 +5,7 @@ import logger from './utils/logging';
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 import { connect } from "mongoose";
-import Conversations, { ConversationType } from './mongo/models/conversations';
+import Conversations, { ConversationType, IConversation } from './mongo/models/conversations';
 import Messages from './mongo/models/messages';
 
 let packageDefinition = protoLoader.loadSync(
@@ -29,9 +29,11 @@ type ChatMessage = {
 
 type Conversation = {
     id: string;
+    type: ConversationType;
     name: string;
     memberIds: string[];
     messages: ChatMessage[];
+    createdAt: Date;
 }
 
 const PORT = process.env.USER_SERVICE_PORT || 31073;
@@ -39,30 +41,52 @@ const PORT = process.env.USER_SERVICE_PORT || 31073;
 async function createConversation(call: any, callback: any) {
     let { ownerId, name, type, memberIds } = call.request;
 
-    if (type === ConversationType.PRIVATE) {
-        name = null;
-        ownerId = null;
+    let conversation: IConversation | null = null;
+
+    if(memberIds.length === 0) {
+        callback({
+            code: grpc.status.INVALID_ARGUMENT,
+            message: 'Conversation members cannot be empty'
+        });
+        return;
     }
 
     try {
-        let conversation = await new Conversations({
-            conversationId: uuidv4(),
-            name,
-            type,
-            members: memberIds,
-            createdBy: ownerId,
-            lastMessageAt: null,
-        }).save();
+        switch(type) {
+            case ConversationType.PRIVATE:
+                name = null;
+                ownerId = null;
 
+                let existConversation = await Conversations
+                    .findOne({ type: ConversationType.PRIVATE, members: { $all: memberIds } })
+                    .exec();
+
+                if(existConversation) conversation = existConversation;
+                break;
+        }
+
+        if(conversation == null) {
+            conversation = await Conversations.create({
+                conversationId: uuidv4(),
+                name,
+                type,
+                members: memberIds,
+                createdBy: ownerId,
+                lastMessageAt: null,
+            });
+        }
+        
         let conversationResponse: Conversation = {
             id: conversation.conversationId as string,
+            type: conversation.type,
             name: conversation.name as string,
             memberIds: conversation.members as string[],
             messages: [],
+            createdAt: conversation.createdAt,
         }
         callback(null, conversationResponse);
-    } catch (error) {
-        logger.error(error);
+    } catch (error: any) {
+        logger.error(error.message);
         callback(error, null);
     }
 }
@@ -74,7 +98,7 @@ async function createChatMessage(call: any, callback: any) {
         let conversation = await Conversations.findOne({ conversationId });
         if (!conversation) {
             callback({
-                code: grpc.status.INVALID_ARGUMENT,
+                code: grpc.status.NOT_FOUND,
                 message: 'Conversation not found'
             });
             return;
@@ -93,11 +117,55 @@ async function createChatMessage(call: any, callback: any) {
             createdAt: message.createdAt,
         };
         callback(null, messageResponse);
-    } catch (error) {
-        logger.error(`gRPC server stopped: ${error}`);
+    } catch (error: any) {
+        logger.error(error.message);
         callback(error, null);
     }
+}
 
+async function searchConversations(call: any, callback: any) {
+    try {
+        let { type, memberIds, term, page, limit, messageLimit } = call.request;
+        let result: any = [];
+        let conversations: IConversation[] = [];
+
+        conversations = await Conversations
+            .find({ members: { $in: memberIds } })
+            .skip(limit * (Math.abs(page) - 1))
+            .limit(limit)
+            .exec();
+
+        for (let conversation of conversations) {
+            let messages = await Messages
+                .find({ conversationId: conversation.conversationId })
+                .sort({ createdAt: -1 })
+                .limit(messageLimit)
+                .exec();
+
+            result.push({
+                id: conversation.conversationId,
+                name: conversation?.name,
+                type: conversation?.type,
+                createdBy: null,
+                createdAt: conversation?.createdAt,
+                lastMessageAt: null,
+                members: conversation.members,
+                messages: messages.map(({ messageId, fromUserId, messageContent, createdAt }) => {
+                    return {
+                        id: messageId,
+                        conversationId: conversation.conversationId,
+                        fromUserId,
+                        messageContent,
+                        createdAt,
+                    }
+                }),
+            });
+        }
+        return result;
+    } catch (error: any) {
+        logger.error(error.message);
+        callback(error, null);
+    }
 }
 
 async function start() {
