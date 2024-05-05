@@ -7,6 +7,7 @@ const protoLoader = require('@grpc/proto-loader');
 import { connect } from "mongoose";
 import Conversations, { ConversationType, IConversation } from './mongo/models/conversations';
 import Messages from './mongo/models/messages';
+import { Timestamp } from 'google-protobuf/google/protobuf/timestamp_pb';
 
 let packageDefinition = protoLoader.loadSync(
     process.env.PROTO_URL,
@@ -17,6 +18,7 @@ let packageDefinition = protoLoader.loadSync(
         defaults: true,
         oneofs: true
     });
+
 let backendProto = grpc.loadPackageDefinition(packageDefinition).backend;
 
 type ChatMessage = {
@@ -114,7 +116,7 @@ async function createChatMessage(call: any, callback: any) {
             conversationId: message.conversationId,
             fromUserId: message.fromUserId,
             messageContent: message.messageContent,
-            createdAt: message.createdAt,
+            createdAt: Timestamp.fromDate(message.createdAt),
         };
         callback(null, messageResponse);
     } catch (error: any) {
@@ -194,8 +196,8 @@ async function findConversation(call: any, callback: any) {
             name: conversation.name,
             type: conversation.type,
             createdBy: conversation.createdBy,
-            createdAt: conversation.createdAt,
-            lastMessageAt: conversation.lastMessageAt,
+            createdAt: Timestamp.fromDate(conversation.createdAt).toObject(),
+            lastMessageAt: conversation.lastMessageAt && Timestamp.fromDate(conversation.lastMessageAt),
             memberIds: conversation.members,
             messages: messages.map(({ messageId, fromUserId, messageContent, createdAt }) => {
                 return {
@@ -203,11 +205,10 @@ async function findConversation(call: any, callback: any) {
                     conversationId: conversation.conversationId,
                     fromUserId,
                     messageContent,
-                    createdAt,
+                    createdAt: Timestamp.fromDate(createdAt).toObject(),
                 }
             }),
         };
-
         callback(null, conversationResponse);
     } catch (error: any) {
         logger.error(error.message);
