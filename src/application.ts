@@ -152,7 +152,7 @@ async function searchConversations(call: any, callback: any) {
                 createdBy: null,
                 createdAt: conversation?.createdAt,
                 lastMessageAt: null,
-                members: conversation.members,
+                memberIds: conversation.members,
                 messages: messages.map(({ messageId, fromUserId, messageContent, createdAt }) => {
                     return {
                         id: messageId,
