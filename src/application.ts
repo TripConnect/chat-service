@@ -173,7 +173,7 @@ async function searchConversations(call: any, callback: any) {
 
 async function findConversation(call: any, callback: any) {
     try {
-        let { conversationId, page, limit } = call.request;
+        let { conversationId, messagePage = 1, messageLimit = 1 } = call.request;
         let conversation = await Conversations.findOne({ conversationId });
 
         if(!conversation) {
@@ -186,10 +186,12 @@ async function findConversation(call: any, callback: any) {
 
         let messages = await Messages
             .find({ conversationId })
-            .sort({ createdAt: page < 0 ? -1 : 1 })
-            .skip(limit * (Math.abs(page) - 1))
-            .limit(limit)
+            .sort({ createdAt: -1 })
+            .skip(messageLimit * (Math.abs(messagePage) - 1))
+            .limit(messageLimit)
             .exec();
+
+        console.log({messagePage, messageLimit, length: messages.length});
 
         let conversationResponse = {
             id: conversation.conversationId,
