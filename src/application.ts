@@ -191,8 +191,6 @@ async function findConversation(call: any, callback: any) {
             .limit(messageLimit)
             .exec();
 
-        console.log({messagePage, messageLimit, length: messages.length});
-
         let conversationResponse = {
             id: conversation.conversationId,
             name: conversation.name,
