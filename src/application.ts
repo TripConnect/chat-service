@@ -10,7 +10,7 @@ import Messages from './mongo/models/messages';
 import { Timestamp } from 'google-protobuf/google/protobuf/timestamp_pb';
 
 let packageDefinition = protoLoader.loadSync(
-    process.env.PROTO_URL,
+    require.resolve('common-utils/protos/backend.proto'),
     {
         keepCase: true,
         longs: String,
@@ -176,7 +176,7 @@ async function findConversation(call: any, callback: any) {
         let { conversationId, messagePage = 1, messageLimit = 1 } = call.request;
         let conversation = await Conversations.findOne({ conversationId });
 
-        if(!conversation) {
+        if (!conversation) {
             callback({
                 code: grpc.status.NOT_FOUND,
                 message: 'Conversation not found'
