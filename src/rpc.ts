@@ -94,22 +94,22 @@ export async function createChatMessage(call: any, callback: any) {
 
 export async function searchConversations(call: any, callback: any) {
     try {
-        let { type, memberIds, term, page_number, page_limit, message_page_limit } = call.request;
+        let { type, memberIds, term, pageNumber, pageSize, messagePageSize } = call.request;
         let result: any = [];
         let conversations: IConversation[] = [];
 
         conversations = await Conversations
             .find({ members: { $in: memberIds } })
             .sort({ createdAt: 1 })
-            .skip(page_limit * (Math.abs(page_number) - 1))
-            .limit(page_limit)
+            .skip(pageSize * (Math.abs(pageNumber) - 1))
+            .limit(pageSize)
             .exec();
 
         for (let conversation of conversations) {
             let messages = await Messages
                 .find({ conversationId: conversation.conversationId })
                 .sort({ createdAt: -1 })
-                .limit(message_page_limit)
+                .limit(messagePageSize)
                 .exec();
 
             result.push({
@@ -140,7 +140,7 @@ export async function searchConversations(call: any, callback: any) {
 
 export async function findConversation(call: any, callback: any) {
     try {
-        let { conversationId, messagePage = 1, messageLimit = 1 } = call.request;
+        let { conversationId, messagePageNumber = 1, messagePageSize = 1 } = call.request;
         let conversation = await Conversations.findOne({ conversationId });
 
         if (!conversation) {
@@ -154,8 +154,8 @@ export async function findConversation(call: any, callback: any) {
         let messages = await Messages
             .find({ conversationId })
             .sort({ createdAt: -1 })
-            .skip(messageLimit * (Math.abs(messagePage) - 1))
-            .limit(messageLimit)
+            .skip(messagePageSize * (Math.abs(messagePageNumber) - 1))
+            .limit(messagePageSize)
             .exec();
 
         let conversationResponse = {
