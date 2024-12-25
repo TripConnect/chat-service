@@ -22,8 +22,9 @@
     "winston": "^3.13.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/application.ts"
+    "start": "ts-node src/application.ts",
+    "seed:up": "ts-node src/database/seeders/seed_conversation_messages.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",

@@ -1,9 +1,5 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
-
-export enum ConversationType {
-    PRIVATE = 'PRIVATE',
-    GROUP = 'GROUP',
-}
+import { ConversationType } from '../../type';
 
 // Define a TypeScript interface for the User document
 export interface IConversation extends Document {
