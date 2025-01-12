@@ -1,7 +1,7 @@
 {
-  "name": "user-service",
+  "name": "chat-service",
   "version": "1.0.0",
-  "description": "user-service",
+  "description": "chat-service",
   "main": "application.ts",
   "dependencies": {
     "@grpc/grpc-js": "^1.10.2",
@@ -18,10 +18,14 @@
     "lodash": "^4.6.1",
     "minimist": "^1.2.0",
     "mongoose": "^8.3.2",
+    "tsconfig-paths": "^4.2.0",
     "uuid": "^9.0.1",
     "winston": "^3.13.0"
   },
   "scripts": {
+    "build": "tsc && tsc-alias",
+    "docker:build": "docker build -t user-service:latest .",
+    "docker:run": "docker run --name user-service -p 31072:31072 user-service:latest",
     "start": "ts-node src/application.ts",
     "seed:up": "ts-node src/database/seeders/seed_conversation_messages.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -35,6 +39,7 @@
     "@types/uuid": "^9.0.8",
     "sequelize-cli": "^6.6.2",
     "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.10",
     "typescript": "^5.4.5"
   }
 }
