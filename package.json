@@ -24,8 +24,8 @@
   },
   "scripts": {
     "build": "tsc && tsc-alias",
-    "docker:build": "docker build -t user-service:latest .",
-    "docker:run": "docker run --name user-service -p 31072:31072 user-service:latest",
+    "docker:build": "docker build -t chat-service:latest .",
+    "docker:run": "docker run --name user-service -p 31073:31073 chat-service:latest",
     "start": "ts-node src/application.ts",
     "seed:up": "ts-node src/database/seeders/seed_conversation_messages.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
