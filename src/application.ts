@@ -7,7 +7,7 @@ import { backendProto } from 'common-utils';
 import * as rpcImplementations from 'rpc';
 import logger from 'utils/logging';
 
-const PORT = process.env.USER_SERVICE_PORT || 31073;
+const PORT = process.env.CHAT_SERVICE_PORT || 31073;
 
 async function start() {
     try {

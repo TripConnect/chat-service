@@ -2,10 +2,10 @@ const grpc = require('@grpc/grpc-js');
 import { Timestamp } from "google-protobuf/google/protobuf/timestamp_pb";
 import { v4 as uuidv4 } from 'uuid';
 
-import Conversations, { IConversation } from "./database/models/conversations";
-import Messages from './database/models/messages';
-import { Conversation, ConversationType } from "./type";
-import logger from "./utils/logging";
+import Conversations, { IConversation } from "database/models/conversations";
+import Messages from 'database/models/messages';
+import { Conversation, ConversationType } from "type";
+import logger from "utils/logging";
 
 export async function createConversation(call: any, callback: any) {
     let { ownerId, name, type, memberIds } = call.request;
