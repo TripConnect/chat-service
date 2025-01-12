@@ -3,9 +3,9 @@ import 'dotenv/config';
 import { connect } from "mongoose";
 import { v4 as uuidv4 } from 'uuid';
 
-import Messages from "../models/messages";
-import Conversations from "../models/conversations";
-import { ConversationType } from "../../type";
+import Messages from "database/models/messages";
+import Conversations from "database/models/conversations";
+import { ConversationType } from "type";
 
 (async function () {
     const firstUserId = "00000000-0000-0000-0000-000000000001";

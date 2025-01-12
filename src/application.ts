@@ -4,8 +4,8 @@ const grpc = require('@grpc/grpc-js');
 import { connect } from "mongoose";
 
 import { backendProto } from 'common-utils';
-import * as rpcImplementations from './rpc';
-import logger from './utils/logging';
+import * as rpcImplementations from 'rpc';
+import logger from 'utils/logging';
 
 const PORT = process.env.USER_SERVICE_PORT || 31073;
 
