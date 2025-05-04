@@ -1,13 +1,18 @@
-# Build proto
-Simple gen
+# Introduction
+The backend micro-service for chatting related
+
+# Starting up service
 ```sh
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative chat_service.proto
+go run .
 ```
-Pretty dir change (recommended)
+
+# Build
+## gRPC
+Build gRPC related
 ```sh
 protoc --go_out=src/protos/defs --go_opt=paths=source_relative --go-grpc_out=src/protos/defs --go-grpc_opt=paths=source_relative --proto_path=src/protos src/protos/chat_service.proto
 ```
-## Target
+Target tree will like here
 ```sh
 .
 ├── go.mod
@@ -24,27 +29,18 @@ protoc --go_out=src/protos/defs --go_opt=paths=source_relative --go-grpc_out=src
 4 directories, 7 files
 ```
 
-# Installation
-`go install`: Install globally
-`go get`: Install locally
-## Install core packages
+# Development cheatsheet
+## Installation
+**Commands**  
+`go install`: Install globally  
+`go get`: Install locally  
+**Install gRPC core packages**
 ```sh
 go get google.golang.org/grpc
 ```
+**Setup gRPC protoc generator**
 ```sh
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 export PATH=$PATH:$HOME/go/bin
-```
-
-if search by members -> use [combine]: (userIdA)(userIdB)
-
-# Start
-```sh
-go run .
-```
-
-# Quick command
-```sh
-rm -rf *
 ```

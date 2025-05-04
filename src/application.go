@@ -8,6 +8,7 @@ import (
 	"net"
 
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
+	service "github.com/TripConnect/chat-service/src/services"
 	"google.golang.org/grpc"
 )
 
@@ -20,15 +21,13 @@ type server struct {
 }
 
 func (s *server) CreateConversation(_ context.Context, in *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	log.Printf("Create conversation: %v", in.GetName())
-	return &pb.Conversation{
-		Name: in.GetName(),
-	}, nil
+	conversation := service.CreateConversation(in)
+	return conversation, nil
 }
 
 func (s *server) SearchConversations(_ context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	log.Printf("Received term: %v", in.GetTerm())
-	return &pb.Conversations{Conversations: []*pb.Conversation{}}, nil
+	conversations := service.SearchConversations(in)
+	return conversations, nil
 }
 
 func main() {
