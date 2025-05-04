@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  cassandra:
+    image: cassandra:3.11.16
+    container_name: cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=TestCluster
+      - CASSANDRA_AUTHENTICATOR=PasswordAuthenticator
+      - CASSANDRA_AUTHORIZER=CassandraAuthorizer
+      - CASSANDRA_SUPERUSER_SETUP=true
+      - CASSANDRA_SUPERUSER_NAME=cassandra
+      - CASSANDRA_SUPERUSER_PASSWORD=tripconnect3107
