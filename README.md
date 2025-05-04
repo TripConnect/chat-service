@@ -3,7 +3,7 @@ The backend micro-service for chatting related
 
 # Starting up service
 ```sh
-go run .
+go run ./src
 ```
 
 # Build
