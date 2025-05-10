@@ -53,10 +53,10 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		CreatedAt: time.Now(),
 	}
 
-	err := models.ConversationRepository.Insert(conversation)
-	if err != nil {
-		log.Fatalf("Failed to insert conversation: %v", err)
-		return nil, err
+	insertErr := models.ConversationRepository.Insert(conversation)
+	if insertErr != nil {
+		log.Fatalf("Failed to insert conversation: %v", insertErr)
+		return nil, insertErr
 	}
 	indexJson, _ := json.Marshal(conversation.ToEs())
 	constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(indexJson))
