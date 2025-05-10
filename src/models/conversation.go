@@ -1,13 +1,15 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	constants "github.com/TripConnect/chat-service/src/consts"
-
+	pb "github.com/TripConnect/chat-service/src/protos/defs"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
 	"github.com/kristoiv/gocqltable/recipes"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ConversationEntity represents a conversation record in the database.
@@ -40,10 +42,26 @@ var ConversationRepository = struct {
 }
 
 func (entity ConversationEntity) ToEs() ConversationIndex {
-	es := ConversationIndex{
+	return ConversationIndex{
 		Id:        entity.Id,
 		Name:      entity.Name,
 		CreatedAt: int(entity.CreatedAt.UnixMilli()),
 	}
-	return es
+}
+
+func (entity ConversationEntity) ToPb() pb.Conversation {
+	var memberIds []string
+	if entity.Type == int(pb.ConversationType_PRIVATE) {
+		memberIds = strings.Split(entity.Id, constants.ElasticsearchSeparator)
+	} else {
+		memberIds = []string{} // TODO: Find on conversation_members
+	}
+
+	return pb.Conversation{
+		Id:        entity.Id,
+		Type:      pb.ConversationType(entity.Type),
+		Name:      entity.Name,
+		MemberIds: memberIds,
+		CreatedAt: timestamppb.New(entity.CreatedAt),
+	}
 }

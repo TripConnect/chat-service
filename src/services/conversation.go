@@ -15,7 +15,6 @@ import (
 	"github.com/gocql/gocql"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, error) {
@@ -31,9 +30,10 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		conversationId = strings.Join(memberIds, constants.ElasticsearchSeparator)
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
 
-		conversation, _ := models.ConversationRepository.Get(conversationId)
-		if conversation != nil {
-			return nil, status.New(codes.InvalidArgument, "private conversation exist").Err()
+		iconversation, _ := models.ConversationRepository.Get(conversationId)
+		if iconversation != nil {
+			pbConversation := iconversation.(*models.ConversationEntity).ToPb()
+			return &pbConversation, nil
 		}
 	} else {
 		var ownerError error
@@ -61,14 +61,9 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 	indexJson, _ := json.Marshal(conversation.ToEs())
 	constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(indexJson))
 
-	result := &pb.Conversation{
-		Id:        conversation.Id,
-		Type:      pb.ConversationType(conversation.Type),
-		Name:      req.GetName(),
-		CreatedAt: timestamppb.New(conversation.CreatedAt),
-	}
+	pbConversation := conversation.ToPb()
 
-	return result, nil
+	return &pbConversation, nil
 }
 
 func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
@@ -86,12 +81,8 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 
 	var conversations []*pb.Conversation
 	for _, conv := range convs {
-		conversations = append(conversations, &pb.Conversation{
-			Id:        conv.Id,
-			Name:      conv.Name,
-			Type:      pb.ConversationType(conv.Type),
-			CreatedAt: timestamppb.New(conv.CreatedAt),
-		})
+		conversation := conv.ToPb()
+		conversations = append(conversations, &conversation)
 	}
 
 	result := &pb.Conversations{Conversations: conversations}
