@@ -25,13 +25,22 @@ type server struct {
 }
 
 func (s *server) CreateConversation(_ context.Context, in *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	conversation, conversationError := service.CreateConversation(in)
-	return conversation, conversationError
+	conversation, err := service.CreateConversation(in)
+	return conversation, err
 }
 
 func (s *server) SearchConversations(_ context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	conversations, _ := service.SearchConversations(in)
-	return conversations, nil
+	conversations, err := service.SearchConversations(in)
+	return conversations, err
+}
+
+func (s *server) CreateChatMessage(_ context.Context, in *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
+	chatMessage, err := service.CreateChatMessage(in)
+	return chatMessage, err
+}
+
+func (s *server) GetChatMessageRequest(_ context.Context, in *pb.CreateChatMessageRequest) (*pb.ChatMessages, error) {
+	return nil, nil
 }
 
 func cassandraInitialize() {
@@ -50,12 +59,21 @@ func cassandraInitialize() {
 		"class":              "SimpleStrategy",
 		"replication_factor": 1,
 	}, true)
-	table := keyspace.NewTable(
-		constants.ConversationTableName,
-		[]string{"id"},
-		nil,
-		models.ConversationEntity{})
-	table.Create()
+
+	tableMap := map[string]any{
+		constants.ConversationTableName: models.ConversationEntity{},
+		constants.ChatMessageTableName:  models.ChatMessageEntity{},
+	}
+
+	for tableName, tableDes := range tableMap {
+		table := keyspace.NewTable(
+			tableName,
+			[]string{"id"},
+			nil,
+			tableDes)
+		table.Create()
+	}
+
 }
 
 func init() {

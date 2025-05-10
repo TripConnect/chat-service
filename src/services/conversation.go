@@ -30,10 +30,10 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		conversationId = strings.Join(memberIds, constants.ElasticsearchSeparator)
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
 
-		iconversation, _ := models.ConversationRepository.Get(conversationId)
-		if iconversation != nil {
-			pbConversation := iconversation.(*models.ConversationEntity).ToPb()
-			return &pbConversation, nil
+		existConversation, _ := models.ConversationRepository.Get(conversationId)
+		if existConversation != nil {
+			conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
+			return &conversationPb, nil
 		}
 	} else {
 		var ownerError error
@@ -41,7 +41,7 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		conversationId = gocql.MustRandomUUID().String()
 		ownerId, ownerError = gocql.ParseUUID(req.GetOwnerId())
 		if ownerError != nil {
-			return nil, status.New(codes.InvalidArgument, "invalid owner id").Err()
+			return nil, status.New(codes.InvalidArgument, "invalid ownerId").Err()
 		}
 	}
 
@@ -58,15 +58,31 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		log.Fatalf("Failed to insert conversation: %v", insertErr)
 		return nil, insertErr
 	}
-	indexJson, _ := json.Marshal(conversation.ToEs())
+	// indexJson, _ := json.Marshal(conversation.ToEs())
+	indexJson, _ := json.Marshal(models.NewConversationIndex(conversation))
+
 	constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(indexJson))
 
-	pbConversation := conversation.ToPb()
+	pbConversation := models.NewConversationPb(conversation)
 
 	return &pbConversation, nil
 }
 
 func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
+	query := "FROM " + constants.ConversationIndex +
+		" | WHERE name LIKE %" + req.GetTerm() + "%" +
+		" | KEEP id"
+
+	sefeQuery, _ := json.Marshal(query)
+	esqlResp, esqlErr := constants.ElasticsearchClient.SQL.Query(
+		bytes.NewReader([]byte(fmt.Sprintf(`{"query": %s}`, sefeQuery))))
+
+	if esqlErr != nil || esqlResp.IsError() {
+		return nil, status.New(codes.Internal, "internal service error").Err()
+	}
+	defer esqlResp.Body.Close()
+	// TODO: Map esql ids to cassandra records
+
 	rows, err := models.ConversationRepository.List()
 	if err != nil {
 		log.Printf("Error fetching conversations: %v", err)
@@ -81,7 +97,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 
 	var conversations []*pb.Conversation
 	for _, conv := range convs {
-		conversation := conv.ToPb()
+		conversation := models.NewConversationPb(*conv)
 		conversations = append(conversations, &conversation)
 	}
 

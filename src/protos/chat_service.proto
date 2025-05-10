@@ -44,7 +44,7 @@ message CreateConversationRequest {
 message CreateChatMessageRequest {
     string conversation_id = 1;
     string from_user_id = 2;
-    string message_content = 3;
+    string content = 3;
 }
 
 message GetChatMessageRequest {
@@ -67,10 +67,9 @@ message Conversation {
 
 message SearchConversationsRequest {
     optional ConversationType type = 1;
-    repeated string member_ids = 2;
-    optional string term = 3;
-    int32 page_number = 4;
-    int32 page_size = 5;
+    optional string term = 2;
+    int32 page_number = 3;
+    int32 page_size = 4;
 }
 
 message Conversations {

@@ -41,7 +41,7 @@ var ConversationRepository = struct {
 	},
 }
 
-func (entity ConversationEntity) ToEs() ConversationIndex {
+func NewConversationIndex(entity ConversationEntity) ConversationIndex {
 	return ConversationIndex{
 		Id:        entity.Id,
 		Name:      entity.Name,
@@ -49,7 +49,7 @@ func (entity ConversationEntity) ToEs() ConversationIndex {
 	}
 }
 
-func (entity ConversationEntity) ToPb() pb.Conversation {
+func NewConversationPb(entity ConversationEntity) pb.Conversation {
 	var memberIds []string
 	if entity.Type == int(pb.ConversationType_PRIVATE) {
 		memberIds = strings.Split(entity.Id, constants.ElasticsearchSeparator)

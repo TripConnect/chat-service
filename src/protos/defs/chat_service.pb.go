@@ -276,7 +276,7 @@ type CreateChatMessageRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
 	FromUserId     string                 `protobuf:"bytes,2,opt,name=from_user_id,json=fromUserId,proto3" json:"from_user_id,omitempty"`
-	MessageContent string                 `protobuf:"bytes,3,opt,name=message_content,json=messageContent,proto3" json:"message_content,omitempty"`
+	Content        string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -325,9 +325,9 @@ func (x *CreateChatMessageRequest) GetFromUserId() string {
 	return ""
 }
 
-func (x *CreateChatMessageRequest) GetMessageContent() string {
+func (x *CreateChatMessageRequest) GetContent() string {
 	if x != nil {
-		return x.MessageContent
+		return x.Content
 	}
 	return ""
 }
@@ -515,10 +515,9 @@ func (x *Conversation) GetCreatedAt() *timestamppb.Timestamp {
 type SearchConversationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          *ConversationType      `protobuf:"varint,1,opt,name=type,proto3,enum=backend.chat_service.ConversationType,oneof" json:"type,omitempty"`
-	MemberIds     []string               `protobuf:"bytes,2,rep,name=member_ids,json=memberIds,proto3" json:"member_ids,omitempty"`
-	Term          *string                `protobuf:"bytes,3,opt,name=term,proto3,oneof" json:"term,omitempty"`
-	PageNumber    int32                  `protobuf:"varint,4,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
-	PageSize      int32                  `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Term          *string                `protobuf:"bytes,2,opt,name=term,proto3,oneof" json:"term,omitempty"`
+	PageNumber    int32                  `protobuf:"varint,3,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
+	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -558,13 +557,6 @@ func (x *SearchConversationsRequest) GetType() ConversationType {
 		return *x.Type
 	}
 	return ConversationType_PRIVATE
-}
-
-func (x *SearchConversationsRequest) GetMemberIds() []string {
-	if x != nil {
-		return x.MemberIds
-	}
-	return nil
 }
 
 func (x *SearchConversationsRequest) GetTerm() string {
@@ -656,12 +648,12 @@ const file_chat_service_proto_rawDesc = "" +
 	"\n" +
 	"member_ids\x18\x04 \x03(\tR\tmemberIdsB\v\n" +
 	"\t_owner_idB\a\n" +
-	"\x05_name\"\x8e\x01\n" +
+	"\x05_name\"\x7f\n" +
 	"\x18CreateChatMessageRequest\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12 \n" +
 	"\ffrom_user_id\x18\x02 \x01(\tR\n" +
-	"fromUserId\x12'\n" +
-	"\x0fmessage_content\x18\x03 \x01(\tR\x0emessageContent\"~\n" +
+	"fromUserId\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\"~\n" +
 	"\x15GetChatMessageRequest\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x1f\n" +
 	"\vpage_number\x18\x02 \x01(\x05R\n" +
@@ -676,15 +668,13 @@ const file_chat_service_proto_rawDesc = "" +
 	"\n" +
 	"member_ids\x18\x04 \x03(\tR\tmemberIds\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xe5\x01\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xc6\x01\n" +
 	"\x1aSearchConversationsRequest\x12?\n" +
-	"\x04type\x18\x01 \x01(\x0e2&.backend.chat_service.ConversationTypeH\x00R\x04type\x88\x01\x01\x12\x1d\n" +
-	"\n" +
-	"member_ids\x18\x02 \x03(\tR\tmemberIds\x12\x17\n" +
-	"\x04term\x18\x03 \x01(\tH\x01R\x04term\x88\x01\x01\x12\x1f\n" +
-	"\vpage_number\x18\x04 \x01(\x05R\n" +
+	"\x04type\x18\x01 \x01(\x0e2&.backend.chat_service.ConversationTypeH\x00R\x04type\x88\x01\x01\x12\x17\n" +
+	"\x04term\x18\x02 \x01(\tH\x01R\x04term\x88\x01\x01\x12\x1f\n" +
+	"\vpage_number\x18\x03 \x01(\x05R\n" +
 	"pageNumber\x12\x1b\n" +
-	"\tpage_size\x18\x05 \x01(\x05R\bpageSizeB\a\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSizeB\a\n" +
 	"\x05_typeB\a\n" +
 	"\x05_term\"Y\n" +
 	"\rConversations\x12H\n" +
