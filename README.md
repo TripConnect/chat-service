@@ -44,8 +44,15 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 export PATH=$PATH:$HOME/go/bin
 ```
+## CLI
 **Starting up infa**
 ```sh
 docker-compose up # up
 docker-compose down # down
+```
+**Using cassandra CQL**
+```sh
+docker exec -it <container-id> sh
+cqlsh
+use ks_chat;
 ```

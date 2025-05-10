@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	constants "github.com/TripConnect/chat-service/src/consts"
+
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
 	"github.com/kristoiv/gocqltable/recipes"
@@ -10,11 +12,17 @@ import (
 
 // ConversationEntity represents a conversation record in the database.
 type ConversationEntity struct {
-	ID        gocql.UUID `cql:"id"`
+	Id        string     `cql:"id"`
 	OwnerId   gocql.UUID `cql:"owner_id"`
 	Name      string     `cql:"name"`
 	Type      int        `cql:"type"`
 	CreatedAt time.Time  `cql:"created_at"`
+}
+
+type ConversationIndex struct {
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	CreatedAt int    `json:"created_at"`
 }
 
 // ConversationRepository provides CRUD operations for the conversations table.
@@ -22,11 +30,20 @@ var ConversationRepository = struct {
 	recipes.CRUD
 }{
 	recipes.CRUD{
-		TableInterface: gocqltable.NewKeyspace("ks_chat").NewTable(
-			"conversations",
+		TableInterface: gocqltable.NewKeyspace(constants.KeySpace).NewTable(
+			constants.ConversationTableName,
 			[]string{"id"},
 			nil,
 			ConversationEntity{},
 		),
 	},
+}
+
+func (entity ConversationEntity) ToEs() ConversationIndex {
+	es := ConversationIndex{
+		Id:        entity.Id,
+		Name:      entity.Name,
+		CreatedAt: int(entity.CreatedAt.UnixMilli()),
+	}
+	return es
 }

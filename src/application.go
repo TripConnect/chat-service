@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 
+	constants "github.com/TripConnect/chat-service/src/consts"
 	"github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
 	service "github.com/TripConnect/chat-service/src/services"
@@ -24,8 +25,8 @@ type server struct {
 }
 
 func (s *server) CreateConversation(_ context.Context, in *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	conversation, _ := service.CreateConversation(in)
-	return conversation, nil
+	conversation, conversationError := service.CreateConversation(in)
+	return conversation, conversationError
 }
 
 func (s *server) SearchConversations(_ context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
@@ -44,24 +45,25 @@ func cassandraInitialize() {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
 	gocqltable.SetDefaultSession(session)
-	keyspace := gocqltable.NewKeyspace("ks_chat")
+	keyspace := gocqltable.NewKeyspace(constants.KeySpace)
 	_ = keyspace.Create(map[string]interface{}{
 		"class":              "SimpleStrategy",
 		"replication_factor": 1,
 	}, true)
 	table := keyspace.NewTable(
-		"conversations",
+		constants.ConversationTableName,
 		[]string{"id"},
 		nil,
 		models.ConversationEntity{})
 	table.Create()
 }
 
-func main() {
+func init() {
 	// Cassandra initalization
 	cassandraInitialize()
+}
 
-	// gRPC initalization
+func main() {
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
