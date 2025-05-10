@@ -44,3 +44,8 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 export PATH=$PATH:$HOME/go/bin
 ```
+**Starting up infa**
+```sh
+docker-compose up # up
+docker-compose down # down
+```
