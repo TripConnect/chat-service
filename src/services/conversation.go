@@ -69,21 +69,86 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 }
 
 func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	query := "FROM " + constants.ConversationIndex +
-		" | WHERE name LIKE %" + req.GetTerm() + "%" +
-		" | KEEP id"
+	query := fmt.Sprintf(
+		`{
+			"from": %d,
+			"size": %d,
+			"query": {
+				"match_all": {}
+			},
+			"sort": [
+				{
+					"created_at": {
+						"order": "desc"
+					}
+				}
+			]
+		}`, req.GetPageNumber()*req.GetPageSize(), req.GetPageSize(),
+	)
+	if len(req.GetTerm()) > 0 {
+		query = fmt.Sprintf(
+			`{
+				"from": %d,
+				"size": %d,
+				"query": {
+					"bool": {
+						"must": [
+							{
+								"wildcard": {
+									"name.keyword": "*%s*"
+								}
+							}
+						]
+					}
+				},
+				"sort": [
+					{
+						"created_at": {
+							"order": "desc"
+						}
+					}
+				]
+			}`, req.GetPageNumber()*req.GetPageSize(), req.GetPageSize(), req.GetTerm(),
+		)
+	}
 
-	sefeQuery, _ := json.Marshal(query)
-	esqlResp, esqlErr := constants.ElasticsearchClient.SQL.Query(
-		bytes.NewReader([]byte(fmt.Sprintf(`{"query": %s}`, sefeQuery))))
+	esResp, esErr := constants.ElasticsearchClient.Search(
+		constants.ElasticsearchClient.Search.WithIndex(constants.ConversationIndex),
+		constants.ElasticsearchClient.Search.WithBody(strings.NewReader(query)))
 
-	if esqlErr != nil || esqlResp.IsError() {
+	if esErr != nil || esResp.IsError() {
+		fmt.Printf("ESQL error %v", esErr)
 		return nil, status.New(codes.Internal, "internal service error").Err()
 	}
-	defer esqlResp.Body.Close()
-	// TODO: Map esql ids to cassandra records
+	defer esResp.Body.Close()
 
-	rows, err := models.ConversationRepository.List()
+	var r map[string]interface{}
+
+	if err := json.NewDecoder(esResp.Body).Decode(&r); err != nil {
+		return nil, status.Error(codes.Internal, codes.Internal.String())
+	}
+	var conversationsIndex []models.ConversationIndex
+	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
+	for _, hit := range hits {
+		source := hit.(map[string]interface{})["_source"]
+		sourceBytes, err := json.Marshal(source)
+		if err != nil {
+			return nil, status.Error(codes.Internal, codes.Internal.String())
+		}
+
+		var conv models.ConversationIndex
+		if err := json.Unmarshal(sourceBytes, &conv); err != nil {
+			return nil, status.Error(codes.Internal, codes.Internal.String())
+		}
+		conversationsIndex = append(conversationsIndex, conv)
+	}
+
+	var ids []string
+	for _, conv := range conversationsIndex {
+		ids = append(ids, conv.Id)
+	}
+
+	rows, err := models.ConversationRepository.List(ids)
 	if err != nil {
 		log.Printf("Error fetching conversations: %v", err)
 		return nil, err
