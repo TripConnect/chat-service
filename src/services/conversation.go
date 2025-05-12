@@ -133,11 +133,13 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 		source := hit.(map[string]interface{})["_source"]
 		sourceBytes, err := json.Marshal(source)
 		if err != nil {
+			fmt.Println("failed to encode es response")
 			return nil, status.Error(codes.Internal, codes.Internal.String())
 		}
 
 		var conv models.ConversationIndex
 		if err := json.Unmarshal(sourceBytes, &conv); err != nil {
+			fmt.Println("failed to unmarshal decoded es response")
 			return nil, status.Error(codes.Internal, codes.Internal.String())
 		}
 		conversationsIndex = append(conversationsIndex, conv)
@@ -148,16 +150,14 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 		ids = append(ids, conv.Id)
 	}
 
-	rows, err := models.ConversationRepository.List(ids)
-	if err != nil {
-		log.Printf("Error fetching conversations: %v", err)
-		return nil, err
-	}
-
-	convs, ok := rows.([]*models.ConversationEntity)
-	if !ok {
-		log.Printf("Type assertion failed for rows")
-		return nil, fmt.Errorf("unexpected type for rows")
+	// FIXME
+	var convs []*models.ConversationEntity
+	for _, id := range ids {
+		if row, err := models.ConversationRepository.Get(id); err != nil {
+			convs = append(convs, row.(*models.ConversationEntity))
+		} else {
+			fmt.Printf("failed to get conversation entity %s: %v", id, err)
+		}
 	}
 
 	var conversations []*pb.Conversation
