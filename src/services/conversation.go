@@ -58,9 +58,8 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		log.Fatalf("Failed to insert conversation: %v", insertErr)
 		return nil, insertErr
 	}
-	// indexJson, _ := json.Marshal(conversation.ToEs())
-	indexJson, _ := json.Marshal(models.NewConversationIndex(conversation))
 
+	indexJson, _ := json.Marshal(models.NewConversationIndex(conversation))
 	constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(indexJson))
 
 	pbConversation := models.NewConversationPb(conversation)
@@ -127,6 +126,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 	if err := json.NewDecoder(esResp.Body).Decode(&r); err != nil {
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
+
 	var conversationsIndex []models.ConversationIndex
 	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
 	for _, hit := range hits {
