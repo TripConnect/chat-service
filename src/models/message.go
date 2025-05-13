@@ -32,10 +32,10 @@ var ChatMessageRepository = struct {
 }{
 	recipes.CRUD{
 		TableInterface: gocqltable.NewKeyspace(constants.KeySpace).NewTable(
-			constants.ConversationTableName,
+			constants.ChatMessageTableName,
 			[]string{"id"},
 			nil,
-			ConversationEntity{},
+			ChatMessageEntity{},
 		),
 	},
 }
