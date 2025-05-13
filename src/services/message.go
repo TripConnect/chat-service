@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -34,6 +35,9 @@ func CreateChatMessage(req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
+	encodedIndex, _ := json.Marshal(models.NewChatMessageIndex(chatMessage))
+	constants.ElasticsearchClient.Index(constants.ChatMessageIndex, bytes.NewReader(encodedIndex))
+
 	chatMessagePb := models.NewChatMessagePb(chatMessage)
 
 	return &chatMessagePb, nil
@@ -48,7 +52,7 @@ func GetChatMessages(req *pb.GetChatMessageRequest) (*pb.ChatMessages, error) {
 				"bool": {
 					"must": [
 						{
-							"match_phase": {
+							"match_phrase": {
 								"conversation_id": "%s"
 							}
 						}
@@ -70,6 +74,7 @@ func GetChatMessages(req *pb.GetChatMessageRequest) (*pb.ChatMessages, error) {
 		constants.ElasticsearchClient.Search.WithBody(strings.NewReader(query)))
 
 	if esErr != nil || esResp.IsError() {
+		fmt.Printf("Failed to get chat messages %v", esErr)
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 	defer esResp.Body.Close()

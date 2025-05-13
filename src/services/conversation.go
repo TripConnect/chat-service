@@ -59,8 +59,8 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		return nil, insertErr
 	}
 
-	indexJson, _ := json.Marshal(models.NewConversationIndex(conversation))
-	constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(indexJson))
+	encodedIndex, _ := json.Marshal(models.NewConversationIndex(conversation))
+	constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(encodedIndex))
 
 	pbConversation := models.NewConversationPb(conversation)
 
