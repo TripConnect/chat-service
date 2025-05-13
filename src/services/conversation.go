@@ -150,11 +150,10 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 		ids = append(ids, conv.Id)
 	}
 
-	// FIXME
 	var convs []*models.ConversationEntity
 	for _, id := range ids {
-		if row, err := models.ConversationRepository.Get(id); err != nil {
-			convs = append(convs, row.(*models.ConversationEntity))
+		if entity, err := models.ConversationRepository.Get(id); err == nil {
+			convs = append(convs, entity.(*models.ConversationEntity))
 		} else {
 			fmt.Printf("failed to get conversation entity %s: %v", id, err)
 		}
