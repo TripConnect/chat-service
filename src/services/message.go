@@ -18,19 +18,20 @@ func CreateChatMessage(req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error
 	fromUserId, fromUserIdErr := gocql.ParseUUID(req.FromUserId)
 
 	if fromUserIdErr != nil {
-		return nil, status.New(codes.InvalidArgument, "invalid fromUserId").Err()
+		return nil, status.Error(codes.InvalidArgument, "invalid fromUserId")
 	}
 
 	chatMessage := models.ChatMessageEntity{
 		Id:             gocql.MustRandomUUID(),
-		ConversationId: req.ConversationId,
+		ConversationId: req.GetConversationId(),
 		FromUserId:     fromUserId,
 		Content:        req.GetContent(),
 		CreatedAt:      time.Now(),
 	}
-	insertError := models.ChatMessageRepository.Insert(chatMessage)
-	if insertError != nil {
-		return nil, status.New(codes.Internal, "invalid fromUserId").Err()
+
+	if insertError := models.ChatMessageRepository.Insert(chatMessage); insertError != nil {
+		fmt.Printf("failed to create chat message %v", insertError)
+		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
 	chatMessagePb := models.NewChatMessagePb(chatMessage)

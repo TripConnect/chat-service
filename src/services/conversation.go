@@ -41,7 +41,7 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		conversationId = gocql.MustRandomUUID().String()
 		ownerId, ownerError = gocql.ParseUUID(req.GetOwnerId())
 		if ownerError != nil {
-			return nil, status.New(codes.InvalidArgument, "invalid ownerId").Err()
+			return nil, status.Error(codes.InvalidArgument, "invalid ownerId")
 		}
 	}
 
@@ -117,7 +117,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 
 	if esErr != nil || esResp.IsError() {
 		fmt.Printf("ESQL error %v", esErr)
-		return nil, status.New(codes.Internal, "internal service error").Err()
+		return nil, status.Error(codes.Internal, "internal service error")
 	}
 	defer esResp.Body.Close()
 
