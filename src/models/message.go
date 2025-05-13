@@ -12,11 +12,11 @@ import (
 )
 
 type ChatMessageEntity struct {
-	CreatedAt      time.Time  `cql:"created_at"`
 	Id             gocql.UUID `cql:"id"`
 	ConversationId string     `cql:"conversation_id"`
 	FromUserId     gocql.UUID `cql:"from_user_id"`
 	Content        string     `cql:"content"`
+	CreatedAt      time.Time  `cql:"created_at"`
 }
 
 type ChatMessageIndex struct {

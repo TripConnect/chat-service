@@ -127,7 +127,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	var conversationsIndex []models.ConversationIndex
+	var esConversations []models.ConversationIndex
 	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
 	for _, hit := range hits {
 		source := hit.(map[string]interface{})["_source"]
@@ -142,11 +142,11 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 			fmt.Println("failed to unmarshal decoded es response")
 			return nil, status.Error(codes.Internal, codes.Internal.String())
 		}
-		conversationsIndex = append(conversationsIndex, conv)
+		esConversations = append(esConversations, conv)
 	}
 
 	var ids []string
-	for _, conv := range conversationsIndex {
+	for _, conv := range esConversations {
 		ids = append(ids, conv.Id)
 	}
 

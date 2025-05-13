@@ -39,8 +39,9 @@ func (s *server) CreateChatMessage(_ context.Context, in *pb.CreateChatMessageRe
 	return chatMessage, err
 }
 
-func (s *server) GetChatMessageRequest(_ context.Context, in *pb.CreateChatMessageRequest) (*pb.ChatMessages, error) {
-	return nil, nil
+func (s *server) GetChatMessageRequest(_ context.Context, in *pb.GetChatMessageRequest) (*pb.ChatMessages, error) {
+	chatMessages, err := service.GetChatMessages(in)
+	return chatMessages, err
 }
 
 func cassandraInitialize() {
