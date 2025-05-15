@@ -18,7 +18,8 @@ import (
 )
 
 func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	var conversationId string
+	conversationId := gocql.MustRandomUUID()
+	aliasId := conversationId.String()
 	var ownerId gocql.UUID
 
 	if req.GetType() == pb.ConversationType_PRIVATE {
@@ -27,10 +28,10 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 			return memberIds[i] > memberIds[j]
 		})
 
-		conversationId = strings.Join(memberIds, constants.ElasticsearchSeparator)
+		aliasId = strings.Join(memberIds, constants.ElasticsearchSeparator)
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
 
-		existConversation, _ := models.ConversationRepository.Get(conversationId)
+		existConversation, _ := models.ConversationRepository.Get(aliasId)
 		if existConversation != nil {
 			conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
 			return &conversationPb, nil
@@ -38,7 +39,6 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 	} else {
 		var ownerError error
 
-		conversationId = gocql.MustRandomUUID().String()
 		ownerId, ownerError = gocql.ParseUUID(req.GetOwnerId())
 		if ownerError != nil {
 			return nil, status.Error(codes.InvalidArgument, "invalid ownerId")
@@ -47,6 +47,7 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 
 	conversation := models.ConversationEntity{
 		Id:        conversationId,
+		AliasId:   aliasId,
 		Name:      req.GetName(),
 		Type:      int(req.GetType()),
 		OwnerId:   ownerId,
@@ -145,7 +146,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 		esConversations = append(esConversations, conv)
 	}
 
-	var ids []string
+	var ids []gocql.UUID
 	for _, conv := range esConversations {
 		ids = append(ids, conv.Id)
 	}

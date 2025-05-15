@@ -14,7 +14,8 @@ import (
 
 // ConversationEntity represents a conversation record in the database.
 type ConversationEntity struct {
-	Id        string     `cql:"id"`
+	Id        gocql.UUID `cql:"id"`
+	AliasId   string     `cql:"alias_id"`
 	OwnerId   gocql.UUID `cql:"owner_id"`
 	Name      string     `cql:"name"`
 	Type      int        `cql:"type"`
@@ -22,9 +23,10 @@ type ConversationEntity struct {
 }
 
 type ConversationIndex struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	CreatedAt int    `json:"created_at"`
+	Id        gocql.UUID `cql:"id"`
+	AliasId   string     `cql:"alias_id"`
+	Name      string     `json:"name"`
+	CreatedAt int        `json:"created_at"`
 }
 
 // ConversationRepository provides CRUD operations for the conversations table.
@@ -52,13 +54,13 @@ func NewConversationIndex(entity ConversationEntity) ConversationIndex {
 func NewConversationPb(entity ConversationEntity) pb.Conversation {
 	var memberIds []string
 	if entity.Type == int(pb.ConversationType_PRIVATE) {
-		memberIds = strings.Split(entity.Id, constants.ElasticsearchSeparator)
+		memberIds = strings.Split(entity.AliasId, constants.ElasticsearchSeparator)
 	} else {
 		memberIds = []string{} // TODO: Find on conversation_members
 	}
 
 	return pb.Conversation{
-		Id:        entity.Id,
+		Id:        entity.Id.String(),
 		Type:      pb.ConversationType(entity.Type),
 		Name:      entity.Name,
 		MemberIds: memberIds,
