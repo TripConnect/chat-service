@@ -29,6 +29,11 @@ func (s *server) CreateConversation(_ context.Context, in *pb.CreateConversation
 	return conversation, err
 }
 
+func (s *server) FindConversation(_ context.Context, in *pb.FindConversationRequest) (*pb.Conversation, error) {
+	conversation, err := service.FindConversation(in)
+	return conversation, err
+}
+
 func (s *server) SearchConversations(_ context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
 	conversations, err := service.SearchConversations(in)
 	return conversations, err

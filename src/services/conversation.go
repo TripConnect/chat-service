@@ -68,6 +68,16 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 	return &pbConversation, nil
 }
 
+func FindConversation(req *pb.FindConversationRequest) (*pb.Conversation, error) {
+	conversation, err := models.ConversationRepository.Get(req.ConversationId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, codes.NotFound.String())
+	}
+
+	pbConversation := models.NewConversationPb(*conversation.(*models.ConversationEntity))
+	return &pbConversation, nil
+}
+
 func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
 	query := fmt.Sprintf(
 		`{
