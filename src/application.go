@@ -82,9 +82,16 @@ func cassandraInitialize() {
 
 }
 
+func elasticsearchInitialize() {
+	constants.ElasticsearchClient.Indices.Create(constants.ConversationIndex)
+	constants.ElasticsearchClient.Indices.Create(constants.ChatMessageIndex)
+}
+
 func init() {
 	// Cassandra initalization
 	cassandraInitialize()
+	// Elastic search initalization
+	elasticsearchInitialize()
 }
 
 func main() {

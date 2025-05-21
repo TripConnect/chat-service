@@ -62,7 +62,8 @@ func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 			"sort": [
 				{
 					"created_at": {
-						"order": "desc"
+						"order": "desc",
+						"unmapped_type": "long"
 					}
 				}
 			]

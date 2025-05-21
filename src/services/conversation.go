@@ -31,9 +31,66 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		aliasId = strings.Join(memberIds, constants.ElasticsearchSeparator)
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
 
-		existConversation, _ := models.ConversationRepository.Get(aliasId)
-		if existConversation != nil {
+		query := fmt.Sprintf(
+			`{
+				"from": 0,
+				"size": 1,
+				"query": {
+					"bool": {
+						"must": [
+							{
+								"match_phrase": {
+									"alias_id": "%s"
+								}
+							}
+						]
+					}
+				}
+			}`, aliasId,
+		)
+
+		esResp, esErr := constants.ElasticsearchClient.Search(
+			constants.ElasticsearchClient.Search.WithIndex(constants.ConversationIndex),
+			constants.ElasticsearchClient.Search.WithBody(strings.NewReader(query)))
+
+		if esErr != nil || esResp.IsError() {
+			fmt.Printf("ESQL error %v", esErr)
+			return nil, status.Error(codes.Internal, "internal service error")
+		}
+		defer esResp.Body.Close()
+
+		var r map[string]interface{}
+		if err := json.NewDecoder(esResp.Body).Decode(&r); err != nil {
+			return nil, status.Error(codes.Internal, codes.Internal.String())
+		}
+		hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
+		if len(hits) > 0 {
+			var conversationIndex models.ConversationIndex
+
+			conversationSource := hits[0].(map[string]interface{})["_source"]
+			conversationIndexBytes, _ := json.Marshal(conversationSource)
+			json.Unmarshal(conversationIndexBytes, &conversationIndex)
+
+			existConversation, _ := models.ConversationRepository.Get(conversationIndex.Id)
 			conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
+			return &conversationPb, nil
+		} else {
+			conversation := models.ConversationEntity{
+				Id:        gocql.MustRandomUUID(),
+				AliasId:   aliasId,
+				OwnerId:   ownerId,
+				Name:      "",
+				Type:      int(req.GetType()),
+				CreatedAt: time.Now(),
+			}
+			if err := models.ConversationRepository.Insert(conversation); err != nil {
+				return nil, status.Error(codes.Internal, codes.Internal.String())
+			}
+
+			encodedIndex, _ := json.Marshal(models.NewConversationIndex(conversation))
+			constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(encodedIndex))
+
+			conversationPb := models.NewConversationPb(conversation)
 			return &conversationPb, nil
 		}
 	} else {
