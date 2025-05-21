@@ -43,7 +43,7 @@ func CreateChatMessage(req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error
 	return &chatMessagePb, nil
 }
 
-func GetChatMessages(req *pb.GetChatMessageRequest) (*pb.ChatMessages, error) {
+func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 	query := fmt.Sprintf(
 		`{
 			"from": %d,

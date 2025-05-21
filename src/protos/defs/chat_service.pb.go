@@ -332,7 +332,7 @@ func (x *CreateChatMessageRequest) GetContent() string {
 	return ""
 }
 
-type GetChatMessageRequest struct {
+type GetChatMessagesRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
 	PageNumber     int32                  `protobuf:"varint,2,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"`
@@ -341,20 +341,20 @@ type GetChatMessageRequest struct {
 	sizeCache      protoimpl.SizeCache
 }
 
-func (x *GetChatMessageRequest) Reset() {
-	*x = GetChatMessageRequest{}
+func (x *GetChatMessagesRequest) Reset() {
+	*x = GetChatMessagesRequest{}
 	mi := &file_chat_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetChatMessageRequest) String() string {
+func (x *GetChatMessagesRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetChatMessageRequest) ProtoMessage() {}
+func (*GetChatMessagesRequest) ProtoMessage() {}
 
-func (x *GetChatMessageRequest) ProtoReflect() protoreflect.Message {
+func (x *GetChatMessagesRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -366,26 +366,26 @@ func (x *GetChatMessageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetChatMessageRequest.ProtoReflect.Descriptor instead.
-func (*GetChatMessageRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetChatMessagesRequest.ProtoReflect.Descriptor instead.
+func (*GetChatMessagesRequest) Descriptor() ([]byte, []int) {
 	return file_chat_service_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetChatMessageRequest) GetConversationId() string {
+func (x *GetChatMessagesRequest) GetConversationId() string {
 	if x != nil {
 		return x.ConversationId
 	}
 	return ""
 }
 
-func (x *GetChatMessageRequest) GetPageNumber() int32 {
+func (x *GetChatMessagesRequest) GetPageNumber() int32 {
 	if x != nil {
 		return x.PageNumber
 	}
 	return 0
 }
 
-func (x *GetChatMessageRequest) GetPageSize() int32 {
+func (x *GetChatMessagesRequest) GetPageSize() int32 {
 	if x != nil {
 		return x.PageSize
 	}
@@ -653,8 +653,8 @@ const file_chat_service_proto_rawDesc = "" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12 \n" +
 	"\ffrom_user_id\x18\x02 \x01(\tR\n" +
 	"fromUserId\x12\x18\n" +
-	"\acontent\x18\x03 \x01(\tR\acontent\"~\n" +
-	"\x15GetChatMessageRequest\x12'\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\"\x7f\n" +
+	"\x16GetChatMessagesRequest\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x1f\n" +
 	"\vpage_number\x18\x02 \x01(\x05R\n" +
 	"pageNumber\x12\x1b\n" +
@@ -681,13 +681,13 @@ const file_chat_service_proto_rawDesc = "" +
 	"\rconversations\x18\x01 \x03(\v2\".backend.chat_service.ConversationR\rconversations**\n" +
 	"\x10ConversationType\x12\v\n" +
 	"\aPRIVATE\x10\x00\x12\t\n" +
-	"\x05GROUP\x10\x012\xa3\x04\n" +
+	"\x05GROUP\x10\x012\xa4\x04\n" +
 	"\vChatService\x12k\n" +
 	"\x12CreateConversation\x12/.backend.chat_service.CreateConversationRequest\x1a\".backend.chat_service.Conversation\"\x00\x12g\n" +
 	"\x10FindConversation\x12-.backend.chat_service.FindConversationRequest\x1a\".backend.chat_service.Conversation\"\x00\x12n\n" +
 	"\x13SearchConversations\x120.backend.chat_service.SearchConversationsRequest\x1a#.backend.chat_service.Conversations\"\x00\x12h\n" +
-	"\x11CreateChatMessage\x12..backend.chat_service.CreateChatMessageRequest\x1a!.backend.chat_service.ChatMessage\"\x00\x12d\n" +
-	"\x0fGetChatMessages\x12+.backend.chat_service.GetChatMessageRequest\x1a\".backend.chat_service.ChatMessages\"\x00B%Z#github.com/TripConnect/chat-serviceb\x06proto3"
+	"\x11CreateChatMessage\x12..backend.chat_service.CreateChatMessageRequest\x1a!.backend.chat_service.ChatMessage\"\x00\x12e\n" +
+	"\x0fGetChatMessages\x12,.backend.chat_service.GetChatMessagesRequest\x1a\".backend.chat_service.ChatMessages\"\x00B%Z#github.com/TripConnect/chat-serviceb\x06proto3"
 
 var (
 	file_chat_service_proto_rawDescOnce sync.Once
@@ -709,7 +709,7 @@ var file_chat_service_proto_goTypes = []any{
 	(*FindConversationRequest)(nil),    // 2: backend.chat_service.FindConversationRequest
 	(*CreateConversationRequest)(nil),  // 3: backend.chat_service.CreateConversationRequest
 	(*CreateChatMessageRequest)(nil),   // 4: backend.chat_service.CreateChatMessageRequest
-	(*GetChatMessageRequest)(nil),      // 5: backend.chat_service.GetChatMessageRequest
+	(*GetChatMessagesRequest)(nil),     // 5: backend.chat_service.GetChatMessagesRequest
 	(*ChatMessages)(nil),               // 6: backend.chat_service.ChatMessages
 	(*Conversation)(nil),               // 7: backend.chat_service.Conversation
 	(*SearchConversationsRequest)(nil), // 8: backend.chat_service.SearchConversationsRequest
@@ -728,7 +728,7 @@ var file_chat_service_proto_depIdxs = []int32{
 	2,  // 8: backend.chat_service.ChatService.FindConversation:input_type -> backend.chat_service.FindConversationRequest
 	8,  // 9: backend.chat_service.ChatService.SearchConversations:input_type -> backend.chat_service.SearchConversationsRequest
 	4,  // 10: backend.chat_service.ChatService.CreateChatMessage:input_type -> backend.chat_service.CreateChatMessageRequest
-	5,  // 11: backend.chat_service.ChatService.GetChatMessages:input_type -> backend.chat_service.GetChatMessageRequest
+	5,  // 11: backend.chat_service.ChatService.GetChatMessages:input_type -> backend.chat_service.GetChatMessagesRequest
 	7,  // 12: backend.chat_service.ChatService.CreateConversation:output_type -> backend.chat_service.Conversation
 	7,  // 13: backend.chat_service.ChatService.FindConversation:output_type -> backend.chat_service.Conversation
 	9,  // 14: backend.chat_service.ChatService.SearchConversations:output_type -> backend.chat_service.Conversations

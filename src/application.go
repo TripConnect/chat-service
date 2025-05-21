@@ -44,7 +44,7 @@ func (s *server) CreateChatMessage(_ context.Context, in *pb.CreateChatMessageRe
 	return chatMessage, err
 }
 
-func (s *server) GetChatMessages(_ context.Context, in *pb.GetChatMessageRequest) (*pb.ChatMessages, error) {
+func (s *server) GetChatMessages(_ context.Context, in *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 	chatMessages, err := service.GetChatMessages(in)
 	return chatMessages, err
 }

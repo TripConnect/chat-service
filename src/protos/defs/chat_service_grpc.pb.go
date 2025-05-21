@@ -34,7 +34,7 @@ type ChatServiceClient interface {
 	FindConversation(ctx context.Context, in *FindConversationRequest, opts ...grpc.CallOption) (*Conversation, error)
 	SearchConversations(ctx context.Context, in *SearchConversationsRequest, opts ...grpc.CallOption) (*Conversations, error)
 	CreateChatMessage(ctx context.Context, in *CreateChatMessageRequest, opts ...grpc.CallOption) (*ChatMessage, error)
-	GetChatMessages(ctx context.Context, in *GetChatMessageRequest, opts ...grpc.CallOption) (*ChatMessages, error)
+	GetChatMessages(ctx context.Context, in *GetChatMessagesRequest, opts ...grpc.CallOption) (*ChatMessages, error)
 }
 
 type chatServiceClient struct {
@@ -85,7 +85,7 @@ func (c *chatServiceClient) CreateChatMessage(ctx context.Context, in *CreateCha
 	return out, nil
 }
 
-func (c *chatServiceClient) GetChatMessages(ctx context.Context, in *GetChatMessageRequest, opts ...grpc.CallOption) (*ChatMessages, error) {
+func (c *chatServiceClient) GetChatMessages(ctx context.Context, in *GetChatMessagesRequest, opts ...grpc.CallOption) (*ChatMessages, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChatMessages)
 	err := c.cc.Invoke(ctx, ChatService_GetChatMessages_FullMethodName, in, out, cOpts...)
@@ -103,7 +103,7 @@ type ChatServiceServer interface {
 	FindConversation(context.Context, *FindConversationRequest) (*Conversation, error)
 	SearchConversations(context.Context, *SearchConversationsRequest) (*Conversations, error)
 	CreateChatMessage(context.Context, *CreateChatMessageRequest) (*ChatMessage, error)
-	GetChatMessages(context.Context, *GetChatMessageRequest) (*ChatMessages, error)
+	GetChatMessages(context.Context, *GetChatMessagesRequest) (*ChatMessages, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -126,7 +126,7 @@ func (UnimplementedChatServiceServer) SearchConversations(context.Context, *Sear
 func (UnimplementedChatServiceServer) CreateChatMessage(context.Context, *CreateChatMessageRequest) (*ChatMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateChatMessage not implemented")
 }
-func (UnimplementedChatServiceServer) GetChatMessages(context.Context, *GetChatMessageRequest) (*ChatMessages, error) {
+func (UnimplementedChatServiceServer) GetChatMessages(context.Context, *GetChatMessagesRequest) (*ChatMessages, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChatMessages not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
@@ -223,7 +223,7 @@ func _ChatService_CreateChatMessage_Handler(srv interface{}, ctx context.Context
 }
 
 func _ChatService_GetChatMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetChatMessageRequest)
+	in := new(GetChatMessagesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func _ChatService_GetChatMessages_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: ChatService_GetChatMessages_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).GetChatMessages(ctx, req.(*GetChatMessageRequest))
+		return srv.(ChatServiceServer).GetChatMessages(ctx, req.(*GetChatMessagesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

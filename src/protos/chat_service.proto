@@ -12,7 +12,7 @@ service ChatService {
     rpc SearchConversations (SearchConversationsRequest) returns (Conversations) {}
 
     rpc CreateChatMessage (CreateChatMessageRequest) returns (ChatMessage) {}
-    rpc GetChatMessages (GetChatMessageRequest) returns (ChatMessages) {}
+    rpc GetChatMessages (GetChatMessagesRequest) returns (ChatMessages) {}
 }
 
 message ChatMessage {
@@ -47,7 +47,7 @@ message CreateChatMessageRequest {
     string content = 3;
 }
 
-message GetChatMessageRequest {
+message GetChatMessagesRequest {
     string conversation_id = 1;
     int32 page_number = 2;
     int32 page_size = 3;
