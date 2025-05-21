@@ -111,7 +111,7 @@ func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 
 	var chatMessageEntities []*models.ChatMessageEntity
 	for _, id := range ids {
-		if entity, err := models.ConversationRepository.Get(id); err == nil {
+		if entity, err := models.ChatMessageRepository.Get(id); err == nil {
 			chatMessageEntities = append(chatMessageEntities, entity.(*models.ChatMessageEntity))
 		} else {
 			fmt.Printf("failed to get conversation entity %s: %v", id, err)

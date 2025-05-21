@@ -146,7 +146,8 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 			"sort": [
 				{
 					"created_at": {
-						"order": "desc"
+						"order": "desc",
+						"unmapped_type": "long"
 					}
 				}
 			]
@@ -171,7 +172,8 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 				"sort": [
 					{
 						"created_at": {
-							"order": "desc"
+							"order": "desc",
+							"unmapped_type": "long"
 						}
 					}
 				]
