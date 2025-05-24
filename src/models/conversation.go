@@ -22,7 +22,7 @@ type ConversationEntity struct {
 	CreatedAt time.Time  `cql:"created_at"`
 }
 
-type ConversationIndex struct {
+type ConversationDocument struct {
 	Id        gocql.UUID `json:"id"`
 	AliasId   string     `json:"alias_id"`
 	Name      string     `json:"name"`
@@ -43,8 +43,8 @@ var ConversationRepository = struct {
 	},
 }
 
-func NewConversationIndex(entity ConversationEntity) ConversationIndex {
-	return ConversationIndex{
+func NewConversationIndex(entity ConversationEntity) ConversationDocument {
+	return ConversationDocument{
 		Id:        entity.Id,
 		AliasId:   entity.AliasId,
 		Name:      entity.Name,

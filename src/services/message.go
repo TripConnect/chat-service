@@ -86,7 +86,7 @@ func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	var esChatMessages []models.ChatMessageIndex
+	var esChatMessages []models.ChatMessageDocument
 	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
 	for _, hit := range hits {
 		source := hit.(map[string]interface{})["_source"]
@@ -96,7 +96,7 @@ func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 			return nil, status.Error(codes.Internal, codes.Internal.String())
 		}
 
-		var esChatMessage models.ChatMessageIndex
+		var esChatMessage models.ChatMessageDocument
 		if err := json.Unmarshal(sourceBytes, &esChatMessage); err != nil {
 			fmt.Println("failed to unmarshal decoded es response")
 			return nil, status.Error(codes.Internal, codes.Internal.String())

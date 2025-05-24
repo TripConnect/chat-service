@@ -19,7 +19,7 @@ type ChatMessageEntity struct {
 	CreatedAt      time.Time  `cql:"created_at"`
 }
 
-type ChatMessageIndex struct {
+type ChatMessageDocument struct {
 	Id             gocql.UUID `json:"id"`
 	ConversationId string     `json:"conversation_id"`
 	FromUserId     gocql.UUID `json:"from_user_id"`
@@ -40,8 +40,8 @@ var ChatMessageRepository = struct {
 	},
 }
 
-func NewChatMessageIndex(entity ChatMessageEntity) ChatMessageIndex {
-	return ChatMessageIndex{
+func NewChatMessageIndex(entity ChatMessageEntity) ChatMessageDocument {
+	return ChatMessageDocument{
 		Id:             entity.Id,
 		ConversationId: entity.ConversationId,
 		FromUserId:     entity.FromUserId,

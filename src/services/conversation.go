@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TripConnect/chat-service/src/common"
 	constants "github.com/TripConnect/chat-service/src/consts"
 	models "github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
@@ -45,7 +46,15 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 							}
 						]
 					}
-				}
+				},
+				"sort": [
+					{
+						"created_at": {
+							"order": "desc",
+							"unmapped_type": "long"
+						}
+					}
+				]
 			}`, aliasId,
 		)
 
@@ -64,35 +73,40 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 			return nil, status.Error(codes.Internal, codes.Internal.String())
 		}
 		hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
+
 		if len(hits) > 0 {
-			var conversationIndex models.ConversationIndex
-
-			conversationSource := hits[0].(map[string]interface{})["_source"]
-			conversationIndexBytes, _ := json.Marshal(conversationSource)
-			json.Unmarshal(conversationIndexBytes, &conversationIndex)
-
-			existConversation, _ := models.ConversationRepository.Get(conversationIndex.Id)
-			conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
-			return &conversationPb, nil
-		} else {
-			conversation := models.ConversationEntity{
-				Id:        gocql.MustRandomUUID(),
-				AliasId:   aliasId,
-				OwnerId:   ownerId,
-				Name:      "",
-				Type:      int(req.GetType()),
-				CreatedAt: time.Now(),
-			}
-			if err := models.ConversationRepository.Insert(conversation); err != nil {
+			var conversationDocument models.ConversationDocument
+			source := hits[0].(map[string]interface{})["_source"].(map[string]interface{})
+			if err := common.ConvertESToStruct(source, &conversationDocument); err != nil {
 				return nil, status.Error(codes.Internal, codes.Internal.String())
 			}
 
-			encodedIndex, _ := json.Marshal(models.NewConversationIndex(conversation))
-			constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(encodedIndex))
-
-			conversationPb := models.NewConversationPb(conversation)
-			return &conversationPb, nil
+			if existConversation, err := models.ConversationRepository.Get(conversationDocument.Id); err == nil {
+				conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
+				return &conversationPb, nil
+			} else {
+				fmt.Printf("Error while converting %v", err)
+			}
 		}
+
+		conversation := models.ConversationEntity{
+			Id:        gocql.MustRandomUUID(),
+			AliasId:   aliasId,
+			OwnerId:   ownerId,
+			Name:      "",
+			Type:      int(req.GetType()),
+			CreatedAt: time.Now(),
+		}
+
+		if err := models.ConversationRepository.Insert(conversation); err != nil {
+			return nil, status.Error(codes.Internal, codes.Internal.String())
+		}
+
+		encodedIndex, _ := json.Marshal(models.NewConversationIndex(conversation))
+		constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(encodedIndex))
+
+		conversationPb := models.NewConversationPb(conversation)
+		return &conversationPb, nil
 	} else {
 		var ownerError error
 
@@ -197,7 +211,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	var esConversations []models.ConversationIndex
+	var esConversations []models.ConversationDocument
 	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
 	for _, hit := range hits {
 		source := hit.(map[string]interface{})["_source"]
@@ -207,7 +221,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 			return nil, status.Error(codes.Internal, codes.Internal.String())
 		}
 
-		var conv models.ConversationIndex
+		var conv models.ConversationDocument
 		if err := json.Unmarshal(sourceBytes, &conv); err != nil {
 			fmt.Println("failed to unmarshal decoded es response")
 			return nil, status.Error(codes.Internal, codes.Internal.String())
