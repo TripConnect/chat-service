@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TripConnect/chat-service/src/common"
+	common "github.com/TripConnect/chat-service/src/common"
 	constants "github.com/TripConnect/chat-service/src/consts"
 	models "github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
@@ -58,30 +58,11 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 			}`, aliasId,
 		)
 
-		esResp, esErr := constants.ElasticsearchClient.Search(
-			constants.ElasticsearchClient.Search.WithIndex(constants.ConversationIndex),
-			constants.ElasticsearchClient.Search.WithBody(strings.NewReader(query)))
-
-		if esErr != nil || esResp.IsError() {
-			fmt.Printf("ESQL error %v", esErr)
-			return nil, status.Error(codes.Internal, "internal service error")
-		}
-		defer esResp.Body.Close()
-
-		var r map[string]interface{}
-		if err := json.NewDecoder(esResp.Body).Decode(&r); err != nil {
+		if docs, err := common.SearchWithElastic[models.ConversationDocument](constants.ConversationIndex, query); err != nil {
+			fmt.Printf("error while SearchWithElastic %v", err)
 			return nil, status.Error(codes.Internal, codes.Internal.String())
-		}
-		hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
-
-		if len(hits) > 0 {
-			var conversationDocument models.ConversationDocument
-			source := hits[0].(map[string]interface{})["_source"].(map[string]interface{})
-			if err := common.ConvertESToStruct(source, &conversationDocument); err != nil {
-				return nil, status.Error(codes.Internal, codes.Internal.String())
-			}
-
-			if existConversation, err := models.ConversationRepository.Get(conversationDocument.Id); err == nil {
+		} else if len(docs) > 0 {
+			if existConversation, err := models.ConversationRepository.Get(docs[0].Id); err == nil {
 				conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
 				return &conversationPb, nil
 			} else {
