@@ -12,7 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// ConversationEntity represents a conversation record in the database.
 type ConversationEntity struct {
 	Id        gocql.UUID `cql:"id"`
 	AliasId   string     `cql:"alias_id"`
@@ -22,14 +21,20 @@ type ConversationEntity struct {
 	CreatedAt time.Time  `cql:"created_at"`
 }
 
+type ConversationParticipants struct {
+	ConversationId gocql.UUID `cql:"conversation_id"`
+	UserId         gocql.UUID `cql:"user_id"`
+	Status         int64      `cql:"status"`
+}
+
 type ConversationDocument struct {
 	Id        gocql.UUID `json:"id"`
 	AliasId   string     `json:"alias_id"`
 	Name      string     `json:"name"`
+	MemberIds []string   `json:"memberIds"`
 	CreatedAt int        `json:"created_at"`
 }
 
-// ConversationRepository provides CRUD operations for the conversations table.
 var ConversationRepository = struct {
 	recipes.CRUD
 }{
