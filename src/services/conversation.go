@@ -121,7 +121,7 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 }
 
 func FindConversation(req *pb.FindConversationRequest) (*pb.Conversation, error) {
-	conversation, err := models.ConversationRepository.Get(req.ConversationId)
+	conversation, err := models.ConversationRepository.Get(req.GetConversationId())
 	if err != nil {
 		return nil, status.Error(codes.NotFound, codes.NotFound.String())
 	}
