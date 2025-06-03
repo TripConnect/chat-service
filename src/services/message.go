@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
+	common "github.com/TripConnect/chat-service/src/common"
 	constants "github.com/TripConnect/chat-service/src/consts"
 	"github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
@@ -44,9 +44,18 @@ func CreateChatMessage(req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error
 }
 
 func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
+	// FIXME: handle for all nill range
+	var gt, lt int64
+	if before := req.GetBefore(); before != nil {
+		lt = req.GetAfter().AsTime().UnixMilli()
+	}
+	if after := req.GetAfter(); after != nil {
+		gt = req.GetAfter().AsTime().UnixMilli()
+	}
+
 	query := fmt.Sprintf(
 		`{
-			"from": %d,
+			"from": 0,
 			"size": %d,
 			"query": {
 				"bool": {
@@ -54,6 +63,13 @@ func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 						{
 							"match_phrase": {
 								"conversation_id": "%s"
+							}
+						},
+						{
+						"range": {
+							"created_at": {
+								"gt": "%d",
+								"lt": "%d"
 							}
 						}
 					]
@@ -67,63 +83,21 @@ func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 					}
 				}
 			]
-		}`, req.GetPageNumber()*req.GetPageSize(), req.GetPageSize(), req.GetConversationId(),
+		}`, req.GetPageSize(), req.GetConversationId(), gt, lt,
 	)
 
-	esResp, esErr := constants.ElasticsearchClient.Search(
-		constants.ElasticsearchClient.Search.WithIndex(constants.ChatMessageIndex),
-		constants.ElasticsearchClient.Search.WithBody(strings.NewReader(query)))
-
-	if esErr != nil || esResp.IsError() {
-		fmt.Printf("Failed to get chat messages %v", esErr)
+	if docs, err := common.SearchWithElastic[models.ChatMessageDocument](constants.ConversationIndex, query); err != nil {
+		fmt.Printf("error while SearchWithElastic %v", err)
 		return nil, status.Error(codes.Internal, codes.Internal.String())
-	}
-	defer esResp.Body.Close()
-
-	var r map[string]interface{}
-
-	if err := json.NewDecoder(esResp.Body).Decode(&r); err != nil {
-		return nil, status.Error(codes.Internal, codes.Internal.String())
-	}
-
-	var esChatMessages []models.ChatMessageDocument
-	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
-	for _, hit := range hits {
-		source := hit.(map[string]interface{})["_source"]
-		sourceBytes, err := json.Marshal(source)
-		if err != nil {
-			fmt.Println("failed to encode es response")
-			return nil, status.Error(codes.Internal, codes.Internal.String())
+	} else {
+		var pbMessages []*pb.ChatMessage
+		for _, doc := range docs {
+			if rawEntity, err := models.ChatMessageRepository.Get(doc.Id); err != nil {
+				entity := models.NewChatMessagePb(rawEntity.(models.ChatMessageEntity))
+				pbMessages = append(pbMessages, &entity)
+			}
 		}
-
-		var esChatMessage models.ChatMessageDocument
-		if err := json.Unmarshal(sourceBytes, &esChatMessage); err != nil {
-			fmt.Println("failed to unmarshal decoded es response")
-			return nil, status.Error(codes.Internal, codes.Internal.String())
-		}
-		esChatMessages = append(esChatMessages, esChatMessage)
+		result := &pb.ChatMessages{Messages: pbMessages}
+		return result, nil
 	}
-
-	var ids []gocql.UUID
-	for _, chatMsg := range esChatMessages {
-		ids = append(ids, chatMsg.Id)
-	}
-
-	var chatMessageEntities []*models.ChatMessageEntity
-	for _, id := range ids {
-		if entity, err := models.ChatMessageRepository.Get(id); err == nil {
-			chatMessageEntities = append(chatMessageEntities, entity.(*models.ChatMessageEntity))
-		} else {
-			fmt.Printf("failed to get conversation entity %s: %v", id, err)
-		}
-	}
-
-	var chatMessages []*pb.ChatMessage
-	for _, chatMessageEntity := range chatMessageEntities {
-		chatMessage := models.NewChatMessagePb(*chatMessageEntity)
-		chatMessages = append(chatMessages, &chatMessage)
-	}
-
-	result := &pb.ChatMessages{Messages: chatMessages}
-	return result, nil
 }
