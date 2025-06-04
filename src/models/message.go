@@ -40,7 +40,7 @@ var ChatMessageRepository = struct {
 	},
 }
 
-func NewChatMessageIndex(entity ChatMessageEntity) ChatMessageDocument {
+func NewChatMessageDoc(entity ChatMessageEntity) ChatMessageDocument {
 	return ChatMessageDocument{
 		Id:             entity.Id,
 		ConversationId: entity.ConversationId,

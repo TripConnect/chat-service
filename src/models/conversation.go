@@ -31,6 +31,7 @@ type ConversationDocument struct {
 	Id        gocql.UUID `json:"id"`
 	AliasId   string     `json:"alias_id"`
 	Name      string     `json:"name"`
+	Type      int        `json:"type"`
 	MemberIds []string   `json:"memberIds"`
 	CreatedAt int        `json:"created_at"`
 }
@@ -48,11 +49,12 @@ var ConversationRepository = struct {
 	},
 }
 
-func NewConversationIndex(entity ConversationEntity) ConversationDocument {
+func NewConversationDoc(entity ConversationEntity) ConversationDocument {
 	return ConversationDocument{
 		Id:        entity.Id,
 		AliasId:   entity.AliasId,
 		Name:      entity.Name,
+		Type:      entity.Type,
 		CreatedAt: int(entity.CreatedAt.UnixMilli()),
 	}
 }

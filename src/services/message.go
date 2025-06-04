@@ -1,21 +1,21 @@
 package services
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"time"
 
-	common "github.com/TripConnect/chat-service/src/common"
-	constants "github.com/TripConnect/chat-service/src/consts"
+	"github.com/TripConnect/chat-service/src/common"
+	"github.com/TripConnect/chat-service/src/consts"
 	"github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/gocql/gocql"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func CreateChatMessage(req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
+func CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
 	fromUserId, fromUserIdErr := gocql.ParseUUID(req.FromUserId)
 
 	if fromUserIdErr != nil {
@@ -35,69 +35,61 @@ func CreateChatMessage(req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	encodedIndex, _ := json.Marshal(models.NewChatMessageIndex(chatMessage))
-	constants.ElasticsearchClient.Index(constants.ChatMessageIndex, bytes.NewReader(encodedIndex))
+	chatMessageDoc := models.NewChatMessageDoc(chatMessage)
+	consts.ElasticsearchClient.
+		Index(consts.ChatMessageIndex).
+		Id(chatMessageDoc.Id.String()).
+		Request(&chatMessageDoc).
+		Do(ctx)
 
 	chatMessagePb := models.NewChatMessagePb(chatMessage)
 
 	return &chatMessagePb, nil
 }
 
-func GetChatMessages(req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
-	// FIXME: handle for all nill range
-	var gt, lt int64
-	if before := req.GetBefore(); before != nil {
-		lt = req.GetAfter().AsTime().UnixMilli()
-	}
-	if after := req.GetAfter(); after != nil {
-		gt = req.GetAfter().AsTime().UnixMilli()
-	}
+func GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
+	before := req.GetBefore().AsTime().String()
+	after := req.GetAfter().AsTime().String()
 
-	query := fmt.Sprintf(
-		`{
-			"from": 0,
-			"size": %d,
-			"query": {
-				"bool": {
-					"must": [
-						{
-							"match_phrase": {
-								"conversation_id": "%s"
-							}
-						},
-						{
-						"range": {
-							"created_at": {
-								"gt": "%d",
-								"lt": "%d"
-							}
-						}
-					]
-				}
+	esQuery := &types.Query{
+		Bool: &types.BoolQuery{
+			Must: []types.Query{
+				{MatchPhrase: map[string]types.MatchPhraseQuery{
+					"conversation_id": {Query: req.GetConversationId()},
+				}},
 			},
-			"sort": [
-				{
-					"created_at": {
-						"order": "desc",
-						"unmapped_type": "long"
-					}
-				}
-			]
-		}`, req.GetPageSize(), req.GetConversationId(), gt, lt,
-	)
-
-	if docs, err := common.SearchWithElastic[models.ChatMessageDocument](constants.ConversationIndex, query); err != nil {
-		fmt.Printf("error while SearchWithElastic %v", err)
-		return nil, status.Error(codes.Internal, codes.Internal.String())
-	} else {
-		var pbMessages []*pb.ChatMessage
-		for _, doc := range docs {
-			if rawEntity, err := models.ChatMessageRepository.Get(doc.Id); err != nil {
-				entity := models.NewChatMessagePb(rawEntity.(models.ChatMessageEntity))
-				pbMessages = append(pbMessages, &entity)
-			}
-		}
-		result := &pb.ChatMessages{Messages: pbMessages}
-		return result, nil
+			Filter: []types.Query{{
+				Range: map[string]types.RangeQuery{
+					"created_at": &types.DateRangeQuery{
+						Gt: &after,
+						Lt: &before,
+					},
+				},
+			}},
+		},
 	}
+
+	esResp, err := consts.ElasticsearchClient.Search().
+		Index(consts.ChatMessageIndex).
+		Query(esQuery).
+		Size(int(req.GetPageSize())).
+		Do(context.Background())
+	if err != nil {
+		return nil, status.Error(codes.Internal, codes.Internal.String())
+	}
+
+	docs := common.GetResponseDocs[models.ChatMessageDocument](esResp)
+
+	var pbMessages []*pb.ChatMessage
+	for _, doc := range docs {
+		// FIXME: Need to find cass by id, not map directly from doc to cass
+		pbMessage, err := common.ConvertStruct[models.ChatMessageDocument, pb.ChatMessage](&doc)
+		if err != nil {
+			continue
+		}
+		pbMessages = append(pbMessages, &pbMessage)
+	}
+
+	result := &pb.ChatMessages{Messages: pbMessages}
+	return result, nil
 }

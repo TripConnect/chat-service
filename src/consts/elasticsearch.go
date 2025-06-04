@@ -12,11 +12,11 @@ const (
 	ElasticsearchSeparator = "|"
 )
 
-var ElasticsearchClient *elasticsearch.Client
+var ElasticsearchClient *elasticsearch.TypedClient
 
 func init() {
 	var err error
-	ElasticsearchClient, err = elasticsearch.NewClient(elasticsearch.Config{
+	ElasticsearchClient, err = elasticsearch.NewTypedClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 	if err != nil {

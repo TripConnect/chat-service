@@ -56,3 +56,21 @@ docker exec -it <container-id> sh
 cqlsh
 use ks_chat;
 ```
+
+
+```go
+&types.Query{
+    Bool: &types.BoolQuery{
+        Must: []types.Query{
+            {MatchPhrase: map[string]types.MatchPhraseQuery{
+                "conversation_id": {Query: conversationId},
+            }},
+        },
+        Filter: []types.Query{
+            {Range: map[string]types.RangeQuery{
+                "created_at": &types.DateRangeQuery{Gte: &after},
+            }},
+        },
+    },
+}
+```

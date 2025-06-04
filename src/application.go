@@ -24,8 +24,8 @@ type server struct {
 	pb.UnimplementedChatServiceServer
 }
 
-func (s *server) CreateConversation(_ context.Context, in *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	conversation, err := service.CreateConversation(in)
+func (s *server) CreateConversation(ctx context.Context, in *pb.CreateConversationRequest) (*pb.Conversation, error) {
+	conversation, err := service.CreateConversation(ctx, in)
 	return conversation, err
 }
 
@@ -39,13 +39,13 @@ func (s *server) SearchConversations(_ context.Context, in *pb.SearchConversatio
 	return conversations, err
 }
 
-func (s *server) CreateChatMessage(_ context.Context, in *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
-	chatMessage, err := service.CreateChatMessage(in)
+func (s *server) CreateChatMessage(ctx context.Context, in *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
+	chatMessage, err := service.CreateChatMessage(ctx, in)
 	return chatMessage, err
 }
 
-func (s *server) GetChatMessages(_ context.Context, in *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
-	chatMessages, err := service.GetChatMessages(in)
+func (s *server) GetChatMessages(ctx context.Context, in *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
+	chatMessages, err := service.GetChatMessages(ctx, in)
 	return chatMessages, err
 }
 

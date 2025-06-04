@@ -1,24 +1,24 @@
 package services
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"log"
 	"sort"
 	"strings"
 	"time"
 
-	common "github.com/TripConnect/chat-service/src/common"
-	constants "github.com/TripConnect/chat-service/src/consts"
-	models "github.com/TripConnect/chat-service/src/models"
+	"github.com/TripConnect/chat-service/src/common"
+	"github.com/TripConnect/chat-service/src/consts"
+	"github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/gocql/gocql"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, error) {
+func CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.Conversation, error) {
 	conversationId := gocql.MustRandomUUID()
 	aliasId := conversationId.String()
 	var ownerId gocql.UUID
@@ -29,39 +29,31 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 			return memberIds[i] > memberIds[j]
 		})
 
-		aliasId = strings.Join(memberIds, constants.ElasticsearchSeparator)
+		aliasId = strings.Join(memberIds, consts.ElasticsearchSeparator)
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
 
-		query := fmt.Sprintf(
-			`{
-				"from": 0,
-				"size": 1,
-				"query": {
-					"bool": {
-						"must": [
-							{
-								"match_phrase": {
-									"alias_id": "%s"
-								}
-							}
-						]
-					}
+		esQuery := &types.Query{
+			Bool: &types.BoolQuery{
+				Must: []types.Query{
+					{MatchPhrase: map[string]types.MatchPhraseQuery{
+						"alias_id": {Query: aliasId},
+					}},
 				},
-				"sort": [
-					{
-						"created_at": {
-							"order": "desc",
-							"unmapped_type": "long"
-						}
-					}
-				]
-			}`, aliasId,
-		)
+			},
+		}
 
-		if docs, err := common.SearchWithElastic[models.ConversationDocument](constants.ConversationIndex, query); err != nil {
-			fmt.Printf("error while SearchWithElastic %v", err)
+		esResp, err := consts.ElasticsearchClient.Search().
+			Index(consts.ChatMessageIndex).
+			Query(esQuery).
+			Size(1).
+			Sort(). // FIXME: Sort desc by created_at here
+			Do(ctx)
+
+		if err != nil {
 			return nil, status.Error(codes.Internal, codes.Internal.String())
-		} else if len(docs) > 0 {
+		}
+
+		if docs := common.GetResponseDocs[models.ChatMessageDocument](esResp); len(docs) > 0 {
 			if existConversation, err := models.ConversationRepository.Get(docs[0].Id); err == nil {
 				conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
 				return &conversationPb, nil
@@ -83,8 +75,12 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 			return nil, status.Error(codes.Internal, codes.Internal.String())
 		}
 
-		encodedIndex, _ := json.Marshal(models.NewConversationIndex(conversation))
-		constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(encodedIndex))
+		conversationDoc := models.NewConversationDoc(conversation)
+		consts.ElasticsearchClient.
+			Index(consts.ConversationIndex).
+			Id(conversationDoc.Id.String()).
+			Request(&conversationDoc).
+			Do(ctx)
 
 		conversationPb := models.NewConversationPb(conversation)
 		return &conversationPb, nil
@@ -112,8 +108,12 @@ func CreateConversation(req *pb.CreateConversationRequest) (*pb.Conversation, er
 		return nil, insertErr
 	}
 
-	encodedIndex, _ := json.Marshal(models.NewConversationIndex(conversation))
-	constants.ElasticsearchClient.Index(constants.ConversationIndex, bytes.NewReader(encodedIndex))
+	conversationDoc := models.NewConversationDoc(conversation)
+	consts.ElasticsearchClient.
+		Index(consts.ConversationIndex).
+		Id(conversationDoc.Id.String()).
+		Request(&conversationDoc).
+		Do(ctx)
 
 	pbConversation := models.NewConversationPb(conversation)
 
@@ -131,84 +131,41 @@ func FindConversation(req *pb.FindConversationRequest) (*pb.Conversation, error)
 }
 
 func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	query := fmt.Sprintf(
-		`{
-			"from": %d,
-			"size": %d,
-			"query": {
-				"match_all": {}
-			},
-			"sort": [
+	searchTerm := req.GetTerm()
+
+	esQuery := &types.Query{
+		Bool: &types.BoolQuery{
+			Must: []types.Query{
 				{
-					"created_at": {
-						"order": "desc",
-						"unmapped_type": "long"
-					}
-				}
-			]
-		}`, req.GetPageNumber()*req.GetPageSize(), req.GetPageSize(),
-	)
-	if len(req.GetTerm()) > 0 {
-		query = fmt.Sprintf(
-			`{
-				"from": %d,
-				"size": %d,
-				"query": {
-					"bool": {
-						"must": [
-							{
-								"wildcard": {
-									"name.keyword": "*%s*"
-								}
-							}
-						]
-					}
+					Wildcard: map[string]types.WildcardQuery{
+						"name": {
+							Value: &searchTerm,
+						},
+					},
 				},
-				"sort": [
-					{
-						"created_at": {
-							"order": "desc",
-							"unmapped_type": "long"
-						}
-					}
-				]
-			}`, req.GetPageNumber()*req.GetPageSize(), req.GetPageSize(), req.GetTerm(),
-		)
+				{
+					Term: map[string]types.TermQuery{
+						"type": {
+							Value: req.GetType().Number(),
+						},
+					},
+				},
+			},
+		},
 	}
 
-	esResp, esErr := constants.ElasticsearchClient.Search(
-		constants.ElasticsearchClient.Search.WithIndex(constants.ConversationIndex),
-		constants.ElasticsearchClient.Search.WithBody(strings.NewReader(query)))
+	esResp, esErr := consts.ElasticsearchClient.Search().
+		Index(consts.ConversationIndex).
+		Query(esQuery).
+		From(int(req.GetPageNumber() * req.GetPageSize())).
+		Size(int(req.GetPageSize())).
+		Do(context.Background())
 
-	if esErr != nil || esResp.IsError() {
-		fmt.Printf("ESQL error %v", esErr)
-		return nil, status.Error(codes.Internal, "internal service error")
-	}
-	defer esResp.Body.Close()
-
-	var r map[string]interface{}
-
-	if err := json.NewDecoder(esResp.Body).Decode(&r); err != nil {
-		return nil, status.Error(codes.Internal, codes.Internal.String())
+	if esErr != nil {
+		log.Fatalf("Search failed: %v", esErr)
 	}
 
-	var esConversations []models.ConversationDocument
-	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
-	for _, hit := range hits {
-		source := hit.(map[string]interface{})["_source"]
-		sourceBytes, err := json.Marshal(source)
-		if err != nil {
-			fmt.Println("failed to encode es response")
-			return nil, status.Error(codes.Internal, codes.Internal.String())
-		}
-
-		var conv models.ConversationDocument
-		if err := json.Unmarshal(sourceBytes, &conv); err != nil {
-			fmt.Println("failed to unmarshal decoded es response")
-			return nil, status.Error(codes.Internal, codes.Internal.String())
-		}
-		esConversations = append(esConversations, conv)
-	}
+	esConversations := common.GetResponseDocs[models.ConversationDocument](esResp)
 
 	var ids []gocql.UUID
 	for _, conv := range esConversations {
