@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/TripConnect/chat-service/src/common"
@@ -19,83 +17,23 @@ import (
 )
 
 func CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	conversationId := gocql.MustRandomUUID()
-	aliasId := conversationId.String()
+	var conversationId string
 	var ownerId gocql.UUID
 
 	if req.GetType() == pb.ConversationType_PRIVATE {
-		memberIds := req.GetMemberIds()
-		sort.Slice(memberIds, func(i, j int) bool {
-			return memberIds[i] > memberIds[j]
-		})
-
-		aliasId = strings.Join(memberIds, consts.ElasticsearchSeparator)
+		conversationId = common.GetCombinedId(req.GetMemberIds())
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
-
-		esQuery := &types.Query{
-			Bool: &types.BoolQuery{
-				Must: []types.Query{
-					{MatchPhrase: map[string]types.MatchPhraseQuery{
-						"alias_id": {Query: aliasId},
-					}},
-				},
-			},
-		}
-
-		esResp, err := consts.ElasticsearchClient.Search().
-			Index(consts.ChatMessageIndex).
-			Query(esQuery).
-			Size(1).
-			Sort(). // FIXME: Sort desc by created_at here
-			Do(ctx)
-
-		if err != nil {
-			return nil, status.Error(codes.Internal, codes.Internal.String())
-		}
-
-		if docs := common.GetResponseDocs[models.ChatMessageDocument](esResp); len(docs) > 0 {
-			if existConversation, err := models.ConversationRepository.Get(docs[0].Id); err == nil {
-				conversationPb := models.NewConversationPb(*existConversation.(*models.ConversationEntity))
-				return &conversationPb, nil
-			} else {
-				fmt.Printf("Error while converting %v", err)
-			}
-		}
-
-		conversation := models.ConversationEntity{
-			Id:        gocql.MustRandomUUID(),
-			AliasId:   aliasId,
-			OwnerId:   ownerId,
-			Name:      "",
-			Type:      int(req.GetType()),
-			CreatedAt: time.Now(),
-		}
-
-		if err := models.ConversationRepository.Insert(conversation); err != nil {
-			return nil, status.Error(codes.Internal, codes.Internal.String())
-		}
-
-		conversationDoc := models.NewConversationDoc(conversation)
-		consts.ElasticsearchClient.
-			Index(consts.ConversationIndex).
-			Id(conversationDoc.Id.String()).
-			Request(&conversationDoc).
-			Do(ctx)
-
-		conversationPb := models.NewConversationPb(conversation)
-		return &conversationPb, nil
 	} else {
-		var ownerError error
-
-		ownerId, ownerError = gocql.ParseUUID(req.GetOwnerId())
-		if ownerError != nil {
+		if parsedOwnerId, ownerError := gocql.ParseUUID(req.GetOwnerId()); ownerError != nil {
 			return nil, status.Error(codes.InvalidArgument, "invalid ownerId")
+		} else {
+			conversationId = gocql.MustRandomUUID().String()
+			ownerId = parsedOwnerId
 		}
 	}
 
 	conversation := models.ConversationEntity{
 		Id:        conversationId,
-		AliasId:   aliasId,
 		Name:      req.GetName(),
 		Type:      int(req.GetType()),
 		OwnerId:   ownerId,
@@ -111,9 +49,20 @@ func CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) 
 	conversationDoc := models.NewConversationDoc(conversation)
 	consts.ElasticsearchClient.
 		Index(consts.ConversationIndex).
-		Id(conversationDoc.Id.String()).
+		Id(conversationDoc.Id).
 		Request(&conversationDoc).
 		Do(ctx)
+
+	for _, participantId := range req.GetMemberIds() {
+		if userId, err := gocql.ParseUUID(participantId); err == nil {
+			participant := models.ParticipantEntity{
+				ConversationId: conversation.Id,
+				UserId:         userId,
+				Status:         int(models.Joined),
+			}
+			models.ParticipantRepository.Insert(participant)
+		}
+	}
 
 	pbConversation := models.NewConversationPb(conversation)
 
@@ -167,7 +116,7 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 
 	esConversations := common.GetResponseDocs[models.ConversationDocument](esResp)
 
-	var ids []gocql.UUID
+	var ids []string
 	for _, conv := range esConversations {
 		ids = append(ids, conv.Id)
 	}

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"strings"
 	"time"
 
 	"github.com/TripConnect/chat-service/src/consts"
@@ -12,9 +11,15 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+type ParticipantStatus int
+
+const (
+	Requested ParticipantStatus = 0
+	Joined    ParticipantStatus = 1
+)
+
 type ConversationEntity struct {
-	Id        gocql.UUID `cql:"id"`
-	AliasId   string     `cql:"alias_id"`
+	Id        string     `cql:"id"`
 	OwnerId   gocql.UUID `cql:"owner_id"`
 	Name      string     `cql:"name"`
 	Type      int        `cql:"type"`
@@ -22,18 +27,17 @@ type ConversationEntity struct {
 }
 
 type ParticipantEntity struct {
-	ConversationId gocql.UUID `cql:"conversation_id"`
+	ConversationId string     `cql:"conversation_id"`
 	UserId         gocql.UUID `cql:"user_id"`
-	Status         int64      `cql:"status"`
+	Status         int        `cql:"status"`
 }
 
 type ConversationDocument struct {
-	Id        gocql.UUID `json:"id"`
-	AliasId   string     `json:"alias_id"`
-	Name      string     `json:"name"`
-	Type      int        `json:"type"`
-	MemberIds []string   `json:"member_ids"`
-	CreatedAt int        `json:"created_at"`
+	Id        string   `json:"id"`
+	Name      string   `json:"name"`
+	Type      int      `json:"type"`
+	MemberIds []string `json:"member_ids"`
+	CreatedAt int      `json:"created_at"`
 }
 
 var ConversationRepository = struct {
@@ -65,7 +69,6 @@ var ParticipantRepository = struct {
 func NewConversationDoc(entity ConversationEntity) ConversationDocument {
 	return ConversationDocument{
 		Id:        entity.Id,
-		AliasId:   entity.AliasId,
 		Name:      entity.Name,
 		Type:      entity.Type,
 		CreatedAt: int(entity.CreatedAt.UnixMilli()),
@@ -73,15 +76,11 @@ func NewConversationDoc(entity ConversationEntity) ConversationDocument {
 }
 
 func NewConversationPb(entity ConversationEntity) pb.Conversation {
-	var memberIds []string
-	if entity.Type == int(pb.ConversationType_PRIVATE) {
-		memberIds = strings.Split(entity.AliasId, consts.ElasticsearchSeparator)
-	} else {
-		memberIds = []string{} // TODO: Find on conversation_members
-	}
+	// TODO: Sept members to another rpc with pagination, find on conversation_participants
+	memberIds := []string{}
 
 	return pb.Conversation{
-		Id:        entity.Id.String(),
+		Id:        entity.Id,
 		Type:      pb.ConversationType(entity.Type),
 		Name:      entity.Name,
 		MemberIds: memberIds,

@@ -7,7 +7,7 @@ import (
 	"log"
 	"net"
 
-	constants "github.com/TripConnect/chat-service/src/consts"
+	"github.com/TripConnect/chat-service/src/consts"
 	"github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
 	service "github.com/TripConnect/chat-service/src/services"
@@ -49,7 +49,8 @@ func (s *server) GetChatMessages(ctx context.Context, in *pb.GetChatMessagesRequ
 	return chatMessages, err
 }
 
-func cassandraInitialize() {
+func initCassandra() {
+	// Authentication
 	cluster := gocql.NewCluster("localhost")
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: "cassandra",
@@ -60,38 +61,31 @@ func cassandraInitialize() {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
 	gocqltable.SetDefaultSession(session)
-	keyspace := gocqltable.NewKeyspace(constants.KeySpace)
+
+	// Create keyspace
+	keyspace := gocqltable.NewKeyspace(consts.KeySpace)
 	_ = keyspace.Create(map[string]interface{}{
 		"class":              "SimpleStrategy",
 		"replication_factor": 1,
 	}, true)
 
-	tableMap := map[string]any{
-		constants.ConversationTableName: models.ConversationEntity{},
-		constants.ChatMessageTableName:  models.ChatMessageEntity{},
-	}
-
-	for tableName, tableDes := range tableMap {
-		table := keyspace.NewTable(
-			tableName,
-			[]string{"id"},
-			nil,
-			tableDes)
-		table.Create()
-	}
-
+	// Create tables
+	models.ConversationRepository.TableInterface.Create()
+	models.ChatMessageRepository.TableInterface.Create()
+	models.ParticipantRepository.TableInterface.Create()
 }
 
-func elasticsearchInitialize() {
-	constants.ElasticsearchClient.Indices.Create(constants.ConversationIndex)
-	constants.ElasticsearchClient.Indices.Create(constants.ChatMessageIndex)
+func initElasticsearch() {
+	ctx := context.Background()
+	consts.ElasticsearchClient.Indices.Create(consts.ConversationIndex).Do(ctx)
+	consts.ElasticsearchClient.Indices.Create(consts.ChatMessageIndex).Do(ctx)
 }
 
 func init() {
 	// Cassandra initalization
-	cassandraInitialize()
+	initCassandra()
 	// Elastic search initalization
-	elasticsearchInitialize()
+	initElasticsearch()
 }
 
 func main() {
