@@ -21,7 +21,7 @@ type ConversationEntity struct {
 	CreatedAt time.Time  `cql:"created_at"`
 }
 
-type ConversationParticipants struct {
+type ParticipantEntity struct {
 	ConversationId gocql.UUID `cql:"conversation_id"`
 	UserId         gocql.UUID `cql:"user_id"`
 	Status         int64      `cql:"status"`
@@ -32,7 +32,7 @@ type ConversationDocument struct {
 	AliasId   string     `json:"alias_id"`
 	Name      string     `json:"name"`
 	Type      int        `json:"type"`
-	MemberIds []string   `json:"memberIds"`
+	MemberIds []string   `json:"member_ids"`
 	CreatedAt int        `json:"created_at"`
 }
 
@@ -45,6 +45,19 @@ var ConversationRepository = struct {
 			[]string{"id"},
 			nil,
 			ConversationEntity{},
+		),
+	},
+}
+
+var ParticipantRepository = struct {
+	recipes.CRUD
+}{
+	recipes.CRUD{
+		TableInterface: gocqltable.NewKeyspace(constants.KeySpace).NewTable(
+			constants.ParticipantTableName,
+			[]string{"conversation_id", "user_id", "status"},
+			nil,
+			ParticipantEntity{},
 		),
 	},
 }
