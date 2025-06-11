@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	constants "github.com/TripConnect/chat-service/src/consts"
+	"github.com/TripConnect/chat-service/src/consts"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
@@ -40,8 +40,8 @@ var ConversationRepository = struct {
 	recipes.CRUD
 }{
 	recipes.CRUD{
-		TableInterface: gocqltable.NewKeyspace(constants.KeySpace).NewTable(
-			constants.ConversationTableName,
+		TableInterface: gocqltable.NewKeyspace(consts.KeySpace).NewTable(
+			consts.ConversationTableName,
 			[]string{"id"},
 			nil,
 			ConversationEntity{},
@@ -53,8 +53,8 @@ var ParticipantRepository = struct {
 	recipes.CRUD
 }{
 	recipes.CRUD{
-		TableInterface: gocqltable.NewKeyspace(constants.KeySpace).NewTable(
-			constants.ParticipantTableName,
+		TableInterface: gocqltable.NewKeyspace(consts.KeySpace).NewTable(
+			consts.ParticipantTableName,
 			[]string{"conversation_id", "user_id", "status"},
 			nil,
 			ParticipantEntity{},
@@ -75,7 +75,7 @@ func NewConversationDoc(entity ConversationEntity) ConversationDocument {
 func NewConversationPb(entity ConversationEntity) pb.Conversation {
 	var memberIds []string
 	if entity.Type == int(pb.ConversationType_PRIVATE) {
-		memberIds = strings.Split(entity.AliasId, constants.ElasticsearchSeparator)
+		memberIds = strings.Split(entity.AliasId, consts.ElasticsearchSeparator)
 	} else {
 		memberIds = []string{} // TODO: Find on conversation_members
 	}
