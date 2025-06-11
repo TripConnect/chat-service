@@ -79,19 +79,10 @@ func FindConversation(req *pb.FindConversationRequest) (*pb.Conversation, error)
 	return &pbConversation, nil
 }
 
-func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	searchTerm := req.GetTerm()
-
+func SearchConversations(ctx context.Context, req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
 	esQuery := &types.Query{
 		Bool: &types.BoolQuery{
 			Must: []types.Query{
-				{
-					Wildcard: map[string]types.WildcardQuery{
-						"name": {
-							Value: &searchTerm,
-						},
-					},
-				},
 				{
 					Term: map[string]types.TermQuery{
 						"type": {
@@ -103,12 +94,25 @@ func SearchConversations(req *pb.SearchConversationsRequest) (*pb.Conversations,
 		},
 	}
 
+	if len(req.GetTerm()) > 0 {
+		searchTerm := req.GetTerm()
+		esQuery.Bool.Must = append(esQuery.Bool.Must,
+			types.Query{
+				Wildcard: map[string]types.WildcardQuery{
+					"name": {
+						Value: &searchTerm,
+					},
+				},
+			},
+		)
+	}
+
 	esResp, esErr := consts.ElasticsearchClient.Search().
 		Index(consts.ConversationIndex).
 		Query(esQuery).
 		From(int(req.GetPageNumber() * req.GetPageSize())).
 		Size(int(req.GetPageSize())).
-		Do(context.Background())
+		Do(ctx)
 
 	if esErr != nil {
 		log.Fatalf("Search failed: %v", esErr)

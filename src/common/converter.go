@@ -1,6 +1,12 @@
 package common
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"sort"
+	"strings"
+
+	"github.com/TripConnect/chat-service/src/consts"
+)
 
 func ConvertStruct[S any, D any](src *S) (D, error) {
 	var dst D
@@ -16,4 +22,12 @@ func ConvertStruct[S any, D any](src *S) (D, error) {
 	}
 
 	return dst, nil
+}
+
+func GetCombinedId(ids []string) string {
+	sort.Slice(ids, func(i, j int) bool {
+		return ids[i] > ids[j]
+	})
+
+	return strings.Join(ids, consts.ElasticsearchSeparator)
 }

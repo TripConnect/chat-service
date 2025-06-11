@@ -34,8 +34,8 @@ func (s *server) FindConversation(_ context.Context, in *pb.FindConversationRequ
 	return conversation, err
 }
 
-func (s *server) SearchConversations(_ context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	conversations, err := service.SearchConversations(in)
+func (s *server) SearchConversations(ctx context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
+	conversations, err := service.SearchConversations(ctx, in)
 	return conversations, err
 }
 
