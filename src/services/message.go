@@ -82,12 +82,10 @@ func GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.C
 
 	var pbMessages []*pb.ChatMessage
 	for _, doc := range docs {
-		// FIXME: Need to find cass by id, not map directly from doc to cass
-		pbMessage, err := common.ConvertStruct[models.ChatMessageDocument, pb.ChatMessage](&doc)
-		if err != nil {
-			continue
+		if message, err := models.ChatMessageRepository.Get(doc.Id); err == nil {
+			pbMessage := models.NewChatMessagePb(message.(models.ChatMessageEntity))
+			pbMessages = append(pbMessages, &pbMessage)
 		}
-		pbMessages = append(pbMessages, &pbMessage)
 	}
 
 	result := &pb.ChatMessages{Messages: pbMessages}
