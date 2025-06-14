@@ -3,7 +3,7 @@ package consts
 import (
 	"log"
 
-	elasticsearch "github.com/elastic/go-elasticsearch/v9"
+	"github.com/elastic/go-elasticsearch/v9"
 )
 
 const (

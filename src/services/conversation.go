@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/TripConnect/chat-service/src/common"
 	"github.com/TripConnect/chat-service/src/consts"
 	"github.com/TripConnect/chat-service/src/models"
 	pb "github.com/TripConnect/chat-service/src/protos/defs"
-	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -80,36 +82,19 @@ func FindConversation(req *pb.FindConversationRequest) (*pb.Conversation, error)
 }
 
 func SearchConversations(ctx context.Context, req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	esQuery := &types.Query{
-		Bool: &types.BoolQuery{
-			Must: []types.Query{
-				{
-					Term: map[string]types.TermQuery{
-						"type": {
-							Value: req.GetType().Number(),
-						},
-					},
-				},
-			},
-		},
-	}
+	esQuery := esdsl.NewBoolQuery().
+		Must(esdsl.NewMatchPhraseQuery("type", strconv.Itoa(int(req.GetType().Number()))))
 
 	if len(req.GetTerm()) > 0 {
 		searchTerm := req.GetTerm()
-		esQuery.Bool.Must = append(esQuery.Bool.Must,
-			types.Query{
-				Wildcard: map[string]types.WildcardQuery{
-					"name": {
-						Value: &searchTerm,
-					},
-				},
-			},
-		)
+		esQuery.
+			Must(esdsl.NewWildcardQuery("name", searchTerm))
 	}
 
 	esResp, esErr := consts.ElasticsearchClient.Search().
 		Index(consts.ConversationIndex).
 		Query(esQuery).
+		Sort(esdsl.NewSortOptions().AddSortOption("created_at", esdsl.NewFieldSort(sortorder.Desc))).
 		From(int(req.GetPageNumber() * req.GetPageSize())).
 		Size(int(req.GetPageSize())).
 		Do(ctx)
