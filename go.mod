@@ -11,7 +11,7 @@ require (
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/kristoiv/gocqltable v0.0.0-20160119144122-50cb774da676 // indirect
-	github.com/tripconnect/go-proto-lib v0.0.0-20250616185634-7228093f4f49 // indirect
+	github.com/tripconnect/go-proto-lib v0.0.0-20250616192151-0003e65f6dea // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect

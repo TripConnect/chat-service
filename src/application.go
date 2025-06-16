@@ -49,6 +49,11 @@ func (s *server) GetChatMessages(ctx context.Context, in *pb.GetChatMessagesRequ
 	return chatMessages, err
 }
 
+func (s *server) SearchChatMessages(ctx context.Context, in *pb.SearchChatMessagesRequest) (*pb.ChatMessages, error) {
+	chatMessages, err := service.SearchChatMessages(ctx, in)
+	return chatMessages, err
+}
+
 func initCassandra() {
 	// Authentication
 	cluster := gocql.NewCluster("localhost")
