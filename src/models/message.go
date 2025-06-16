@@ -4,10 +4,10 @@ import (
 	"time"
 
 	constants "github.com/TripConnect/chat-service/src/consts"
-	pb "github.com/TripConnect/chat-service/src/protos/defs"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
 	"github.com/kristoiv/gocqltable/recipes"
+	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 

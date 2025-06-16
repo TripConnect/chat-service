@@ -6,29 +6,6 @@ The backend micro-service for chatting related
 go run ./src
 ```
 
-# Build
-## gRPC
-Build gRPC related
-```sh
-protoc --go_out=src/protos/defs --go_opt=paths=source_relative --go-grpc_out=src/protos/defs --go-grpc_opt=paths=source_relative --proto_path=src/protos src/protos/chat_service.proto
-```
-Target tree will like here
-```sh
-.
-├── go.mod
-├── go.sum
-├── README.md
-└── src
-    ├── application.go
-    └── protos
-        ├── chat_service.proto
-        └── defs
-            ├── chat_service_grpc.pb.go
-            └── chat_service.pb.go
-
-4 directories, 7 files
-```
-
 # Development cheatsheet
 ## Installation
 **Commands**  
@@ -55,22 +32,4 @@ docker-compose down # down
 docker exec -it <container-id> sh
 cqlsh
 use ks_chat;
-```
-
-
-```go
-&types.Query{
-    Bool: &types.BoolQuery{
-        Must: []types.Query{
-            {MatchPhrase: map[string]types.MatchPhraseQuery{
-                "conversation_id": {Query: conversationId},
-            }},
-        },
-        Filter: []types.Query{
-            {Range: map[string]types.RangeQuery{
-                "created_at": &types.DateRangeQuery{Gte: &after},
-            }},
-        },
-    },
-}
 ```

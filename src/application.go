@@ -9,10 +9,10 @@ import (
 
 	"github.com/TripConnect/chat-service/src/consts"
 	"github.com/TripConnect/chat-service/src/models"
-	pb "github.com/TripConnect/chat-service/src/protos/defs"
 	service "github.com/TripConnect/chat-service/src/services"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
+	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc"
 )
 

@@ -10,10 +10,10 @@ import (
 	"github.com/TripConnect/chat-service/src/common"
 	"github.com/TripConnect/chat-service/src/consts"
 	"github.com/TripConnect/chat-service/src/models"
-	pb "github.com/TripConnect/chat-service/src/protos/defs"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"
+	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
