@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	constants "github.com/TripConnect/chat-service/src/consts"
+	"github.com/TripConnect/chat-service/consts"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
 	"github.com/kristoiv/gocqltable/recipes"
@@ -31,8 +31,8 @@ var ChatMessageRepository = struct {
 	recipes.CRUD
 }{
 	recipes.CRUD{
-		TableInterface: gocqltable.NewKeyspace(constants.KeySpace).NewTable(
-			constants.ChatMessageTableName,
+		TableInterface: gocqltable.NewKeyspace(consts.KeySpace).NewTable(
+			consts.ChatMessageTableName,
 			[]string{"id"},
 			nil,
 			ChatMessageEntity{},

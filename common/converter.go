@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/TripConnect/chat-service/src/consts"
+	"github.com/TripConnect/chat-service/consts"
 )
 
 func GetCombinedId(ids []string) string {

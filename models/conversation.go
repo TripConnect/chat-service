@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/TripConnect/chat-service/src/consts"
+	"github.com/TripConnect/chat-service/consts"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
 	"github.com/kristoiv/gocqltable/recipes"

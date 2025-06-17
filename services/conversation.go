@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/TripConnect/chat-service/src/common"
-	"github.com/TripConnect/chat-service/src/consts"
-	"github.com/TripConnect/chat-service/src/models"
+	"github.com/TripConnect/chat-service/common"
+	"github.com/TripConnect/chat-service/consts"
+	"github.com/TripConnect/chat-service/models"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"

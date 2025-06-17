@@ -7,9 +7,9 @@ import (
 	"log"
 	"net"
 
-	"github.com/TripConnect/chat-service/src/consts"
-	"github.com/TripConnect/chat-service/src/models"
-	service "github.com/TripConnect/chat-service/src/services"
+	"github.com/TripConnect/chat-service/consts"
+	"github.com/TripConnect/chat-service/models"
+	"github.com/TripConnect/chat-service/services"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
 	pb "github.com/tripconnect/go-proto-lib/protos"
@@ -25,32 +25,32 @@ type server struct {
 }
 
 func (s *server) CreateConversation(ctx context.Context, in *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	conversation, err := service.CreateConversation(ctx, in)
+	conversation, err := services.CreateConversation(ctx, in)
 	return conversation, err
 }
 
 func (s *server) FindConversation(_ context.Context, in *pb.FindConversationRequest) (*pb.Conversation, error) {
-	conversation, err := service.FindConversation(in)
+	conversation, err := services.FindConversation(in)
 	return conversation, err
 }
 
 func (s *server) SearchConversations(ctx context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	conversations, err := service.SearchConversations(ctx, in)
+	conversations, err := services.SearchConversations(ctx, in)
 	return conversations, err
 }
 
 func (s *server) CreateChatMessage(ctx context.Context, in *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
-	chatMessage, err := service.CreateChatMessage(ctx, in)
+	chatMessage, err := services.CreateChatMessage(ctx, in)
 	return chatMessage, err
 }
 
 func (s *server) GetChatMessages(ctx context.Context, in *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
-	chatMessages, err := service.GetChatMessages(ctx, in)
+	chatMessages, err := services.GetChatMessages(ctx, in)
 	return chatMessages, err
 }
 
 func (s *server) SearchChatMessages(ctx context.Context, in *pb.SearchChatMessagesRequest) (*pb.ChatMessages, error) {
-	chatMessages, err := service.SearchChatMessages(ctx, in)
+	chatMessages, err := services.SearchChatMessages(ctx, in)
 	return chatMessages, err
 }
 
