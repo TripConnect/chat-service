@@ -59,7 +59,7 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
 		Query(esQuery).
-		Size(int(req.GetPageSize())).
+		Size(int(req.GetLimit())).
 		Do(ctx)
 
 	if err != nil {
@@ -89,12 +89,22 @@ func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessa
 			Must(esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId()))
 	}
 
-	// TODO: Consider apply cursor-based pagination
+	if req.GetBefore() != nil {
+		esQuery.
+			Filter(esdsl.NewNumberRangeQuery("created_at").
+				Gt(types.Float64(req.GetAfter().AsTime().UnixMilli())))
+	}
+
+	if req.GetAfter() != nil {
+		esQuery.
+			Filter(esdsl.NewNumberRangeQuery("created_at").
+				Gt(types.Float64(req.GetAfter().AsTime().UnixMilli())))
+	}
+
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
 		Query(esQuery).
-		From(int(req.GetPageNumber()) * int(req.GetPageSize())).
-		Size(int(req.GetPageSize())).
+		Size(int(req.GetLimit())).
 		Do(ctx)
 
 	if err != nil {
