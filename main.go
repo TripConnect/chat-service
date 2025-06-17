@@ -9,50 +9,16 @@ import (
 
 	"github.com/TripConnect/chat-service/consts"
 	"github.com/TripConnect/chat-service/models"
-	"github.com/TripConnect/chat-service/services"
+	"github.com/TripConnect/chat-service/rpc"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
-	pb "github.com/tripconnect/go-proto-lib/protos"
+	"github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc"
 )
 
 var (
 	port = flag.Int("port", 31073, "The server port")
 )
-
-type server struct {
-	pb.UnimplementedChatServiceServer
-}
-
-func (s *server) CreateConversation(ctx context.Context, in *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	conversation, err := services.CreateConversation(ctx, in)
-	return conversation, err
-}
-
-func (s *server) FindConversation(_ context.Context, in *pb.FindConversationRequest) (*pb.Conversation, error) {
-	conversation, err := services.FindConversation(in)
-	return conversation, err
-}
-
-func (s *server) SearchConversations(ctx context.Context, in *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	conversations, err := services.SearchConversations(ctx, in)
-	return conversations, err
-}
-
-func (s *server) CreateChatMessage(ctx context.Context, in *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
-	chatMessage, err := services.CreateChatMessage(ctx, in)
-	return chatMessage, err
-}
-
-func (s *server) GetChatMessages(ctx context.Context, in *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
-	chatMessages, err := services.GetChatMessages(ctx, in)
-	return chatMessages, err
-}
-
-func (s *server) SearchChatMessages(ctx context.Context, in *pb.SearchChatMessagesRequest) (*pb.ChatMessages, error) {
-	chatMessages, err := services.SearchChatMessages(ctx, in)
-	return chatMessages, err
-}
 
 func initCassandra() {
 	// Authentication
@@ -99,10 +65,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
-	pb.RegisterChatServiceServer(s, &server{})
+
+	var server = grpc.NewServer()
+	protos.RegisterChatServiceServer(server, &rpc.Server{})
+
 	log.Printf("server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
+	if err := server.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }

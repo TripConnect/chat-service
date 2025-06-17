@@ -1,4 +1,4 @@
-package services
+package rpc
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.Conversation, error) {
+func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.Conversation, error) {
 	var conversationId string
 	var ownerId gocql.UUID
 
@@ -71,7 +71,7 @@ func CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) 
 	return &pbConversation, nil
 }
 
-func FindConversation(req *pb.FindConversationRequest) (*pb.Conversation, error) {
+func (s *Server) FindConversation(ctx context.Context, req *pb.FindConversationRequest) (*pb.Conversation, error) {
 	conversation, err := models.ConversationRepository.Get(req.GetConversationId())
 	if err != nil {
 		return nil, status.Error(codes.NotFound, codes.NotFound.String())
@@ -81,7 +81,7 @@ func FindConversation(req *pb.FindConversationRequest) (*pb.Conversation, error)
 	return &pbConversation, nil
 }
 
-func SearchConversations(ctx context.Context, req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
+func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
 	esQuery := esdsl.NewBoolQuery().
 		Must(esdsl.NewMatchPhraseQuery("type", strconv.Itoa(int(req.GetType().Number()))))
 

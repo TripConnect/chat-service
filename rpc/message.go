@@ -1,4 +1,4 @@
-package services
+package rpc
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
+func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
 	fromUserId, fromUserIdErr := gocql.ParseUUID(req.FromUserId)
 
 	if fromUserIdErr != nil {
@@ -48,7 +48,7 @@ func CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*
 	return &chatMessagePb, nil
 }
 
-func GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
+func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
 	before := types.Float64(req.GetBefore().AsTime().UnixMilli())
 	after := types.Float64(req.GetAfter().AsTime().UnixMilli())
 
@@ -80,7 +80,7 @@ func GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.C
 	return result, nil
 }
 
-func SearchChatMessages(ctx context.Context, req *pb.SearchChatMessagesRequest) (*pb.ChatMessages, error) {
+func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessagesRequest) (*pb.ChatMessages, error) {
 	esQuery := esdsl.NewBoolQuery().
 		Must(esdsl.NewWildcardQuery("content", req.GetTerm()))
 
@@ -89,10 +89,12 @@ func SearchChatMessages(ctx context.Context, req *pb.SearchChatMessagesRequest) 
 			Must(esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId()))
 	}
 
-	// TODO: Pagination here
+	// TODO: Consider apply cursor-based pagination
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
 		Query(esQuery).
+		From(int(req.GetPageNumber()) * int(req.GetPageSize())).
+		Size(int(req.GetPageSize())).
 		Do(ctx)
 
 	if err != nil {
