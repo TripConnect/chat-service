@@ -3,18 +3,13 @@ The backend micro-service for chatting related
 
 # Starting up service
 ```sh
-go run .
+go mod download # Install packages
+go run . # Run service server
 ```
 
-# Development cheatsheet
-## Installation
-**Install gRPC core packages**
+# Cheatsheet
+Verify build availability
 ```sh
-go get google.golang.org/grpc
-```
-**Setup gRPC protoc generator**
-```sh
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-export PATH=$PATH:$HOME/go/bin
+docker build -t chat-service:latest . # Build image
+docker run -d -p 31074:31074 --name chat-service chat-service:latest # Run container
 ```
