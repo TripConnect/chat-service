@@ -1,4 +1,4 @@
-name: Build pipeline for chat-service
+name: Chat service pipeline
 
 on: 
   push:
@@ -17,5 +17,5 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/gateway-service:latest .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/gateway-service:latest
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-service:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-service:latest
