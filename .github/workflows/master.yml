@@ -1,9 +1,9 @@
-name: Chat service pipeline
+name: Development pipeline
 
 on: 
   push:
     branches:
-      - feature/ndtrong/ci-cd-integration
+      - master
 
 jobs:
   build:
