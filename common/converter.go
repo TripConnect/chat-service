@@ -7,7 +7,7 @@ import (
 	"github.com/TripConnect/chat-service/consts"
 )
 
-func GetCombinedId(ids []string) string {
+func SortedJoin(ids ...string) string {
 	sort.Slice(ids, func(i, j int) bool {
 		return ids[i] > ids[j]
 	})

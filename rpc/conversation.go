@@ -23,7 +23,7 @@ func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversat
 	var ownerId gocql.UUID
 
 	if req.GetType() == pb.ConversationType_PRIVATE {
-		conversationId = common.GetCombinedId(req.GetMemberIds())
+		conversationId = common.SortedJoin(req.GetMemberIds()...)
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
 	} else {
 		if parsedOwnerId, ownerError := gocql.ParseUUID(req.GetOwnerId()); ownerError != nil {
