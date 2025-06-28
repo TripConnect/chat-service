@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net"
 
 	"github.com/TripConnect/chat-service/consts"
+	"github.com/TripConnect/chat-service/helpers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/TripConnect/chat-service/rpc"
 	"github.com/gocql/gocql"
@@ -16,16 +16,20 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	port = flag.Int("port", 31073, "The server port")
-)
-
 func initCassandra() {
+	host, hostErr := helpers.ReadConfig[string]("database.cassandra.host")
+	username, usernameErr := helpers.ReadConfig[string]("database.cassandra.username")
+	password, passwordErr := helpers.ReadConfig[string]("database.cassandra.password")
+
+	if hostErr != nil || usernameErr != nil || passwordErr != nil {
+		log.Fatal("failed to load cassandra config")
+	}
+
 	// Authentication
-	cluster := gocql.NewCluster("localhost")
+	cluster := gocql.NewCluster(host)
 	cluster.Authenticator = gocql.PasswordAuthenticator{
-		Username: "cassandra",
-		Password: "tripconnect3107",
+		Username: username,
+		Password: password,
 	}
 	session, err := cluster.CreateSession()
 	if err != nil {
@@ -48,6 +52,7 @@ func initCassandra() {
 
 func initElasticsearch() {
 	ctx := context.Background()
+	// Create indexes
 	consts.ElasticsearchClient.Indices.
 		Create(consts.ConversationIndex).
 		Mappings(models.ConversationDocumentMappings).
@@ -66,8 +71,14 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	port, err := helpers.ReadConfig[int]("server.port")
+
+	if err != nil {
+		log.Fatalf("failed to load port config %v", err)
+		return
+	}
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
