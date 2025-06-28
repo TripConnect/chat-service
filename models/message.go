@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/TripConnect/chat-service/consts"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
 	"github.com/kristoiv/gocqltable/recipes"
@@ -26,6 +27,13 @@ type ChatMessageDocument struct {
 	Content        string     `json:"content"`
 	CreatedAt      int        `json:"created_at"`
 }
+
+var ChatMessageDocumentMappings = esdsl.NewTypeMapping().
+	AddProperty("Id", esdsl.NewKeywordProperty()).
+	AddProperty("ConversationId", esdsl.NewKeywordProperty()).
+	AddProperty("FromUserId", esdsl.NewKeywordProperty()).
+	AddProperty("Content", esdsl.NewKeywordProperty()).
+	AddProperty("CreatedAt", esdsl.NewLongNumberProperty())
 
 var ChatMessageRepository = struct {
 	recipes.CRUD

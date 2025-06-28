@@ -82,6 +82,7 @@ func (s *Server) FindConversation(ctx context.Context, req *pb.FindConversationR
 }
 
 func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
+	// TODO: Find joined conversation only
 	esQuery := esdsl.NewBoolQuery().
 		Must(esdsl.NewMatchPhraseQuery("type", strconv.Itoa(int(req.GetType().Number()))))
 

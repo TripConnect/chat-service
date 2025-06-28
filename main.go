@@ -48,8 +48,14 @@ func initCassandra() {
 
 func initElasticsearch() {
 	ctx := context.Background()
-	consts.ElasticsearchClient.Indices.Create(consts.ConversationIndex).Do(ctx)
-	consts.ElasticsearchClient.Indices.Create(consts.ChatMessageIndex).Do(ctx)
+	consts.ElasticsearchClient.Indices.
+		Create(consts.ConversationIndex).
+		Mappings(models.ConversationDocumentMappings).
+		Do(ctx)
+	consts.ElasticsearchClient.Indices.
+		Create(consts.ChatMessageIndex).
+		Mappings(models.ChatMessageDocumentMappings).
+		Do(ctx)
 }
 
 func init() {

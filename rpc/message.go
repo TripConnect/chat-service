@@ -49,12 +49,19 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 }
 
 func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
-	before := types.Float64(req.GetBefore().AsTime().UnixMilli())
-	after := types.Float64(req.GetAfter().AsTime().UnixMilli())
 
 	esQuery := esdsl.NewBoolQuery().
-		Must(esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId())).
-		Filter(esdsl.NewNumberRangeQuery("created_at").Gt(after).Lt(before))
+		Must(esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId()))
+
+	if req.GetBefore() != nil {
+		before := types.Float64(req.GetBefore().AsTime().UnixMilli())
+		esQuery.Must(esdsl.NewNumberRangeQuery("created_at").Lt(before))
+	}
+
+	if req.GetAfter() != nil {
+		after := types.Float64(req.GetAfter().AsTime().UnixMilli())
+		esQuery.Must(esdsl.NewNumberRangeQuery("created_at").Gt(after))
+	}
 
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
