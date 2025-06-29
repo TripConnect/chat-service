@@ -31,7 +31,7 @@ type ChatMessageDocument struct {
 var ChatMessageDocumentMappings = esdsl.NewTypeMapping().
 	AddProperty("id", esdsl.NewKeywordProperty()).
 	AddProperty("conversation_id", esdsl.NewKeywordProperty()).
-	AddProperty("from_iser_id", esdsl.NewKeywordProperty()).
+	AddProperty("from_user_id", esdsl.NewKeywordProperty()).
 	AddProperty("content", esdsl.NewKeywordProperty()).
 	AddProperty("created_at", esdsl.NewLongNumberProperty())
 

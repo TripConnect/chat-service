@@ -45,7 +45,7 @@ var ConversationDocumentMappings = esdsl.NewTypeMapping().
 	AddProperty("id", esdsl.NewKeywordProperty()).
 	AddProperty("name", esdsl.NewKeywordProperty()).
 	AddProperty("type", esdsl.NewIntegerNumberProperty()).
-	AddProperty("member_ids", esdsl.NewNestedProperty()).
+	AddProperty("member_ids", esdsl.NewKeywordProperty()).
 	AddProperty("created_at", esdsl.NewLongNumberProperty())
 
 var ConversationRepository = struct {
