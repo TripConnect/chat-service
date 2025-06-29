@@ -61,6 +61,10 @@ func initElasticsearch() {
 		Create(consts.ChatMessageIndex).
 		Mappings(models.ChatMessageDocumentMappings).
 		Do(ctx)
+	consts.ElasticsearchClient.Indices.
+		Create(consts.ParticipantIndex).
+		Mappings(models.ParticipantDocumentMappings).
+		Do(ctx)
 }
 
 func init() {

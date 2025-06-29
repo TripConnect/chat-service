@@ -29,8 +29,10 @@ type ConversationEntity struct {
 
 type ParticipantEntity struct {
 	ConversationId string     `cql:"conversation_id"`
+	NickName       string     `cql:"nick_name"`
 	UserId         gocql.UUID `cql:"user_id"`
 	Status         int        `cql:"status"`
+	CreatedAt      time.Time  `cql:"created_at"`
 }
 
 type ConversationDocument struct {
@@ -41,11 +43,24 @@ type ConversationDocument struct {
 	CreatedAt int      `json:"created_at"`
 }
 
+type ParticipantDocument struct {
+	ConversationId string     `json:"conversation_id"`
+	UserId         gocql.UUID `json:"user_id"`
+	Status         int        `json:"status"`
+	CreatedAt      int        `json:"created_at"`
+}
+
 var ConversationDocumentMappings = esdsl.NewTypeMapping().
 	AddProperty("id", esdsl.NewKeywordProperty()).
 	AddProperty("name", esdsl.NewKeywordProperty()).
 	AddProperty("type", esdsl.NewIntegerNumberProperty()).
 	AddProperty("member_ids", esdsl.NewKeywordProperty()).
+	AddProperty("created_at", esdsl.NewLongNumberProperty())
+
+var ParticipantDocumentMappings = esdsl.NewTypeMapping().
+	AddProperty("conversation_id", esdsl.NewKeywordProperty()).
+	AddProperty("user_id", esdsl.NewKeywordProperty()).
+	AddProperty("status", esdsl.NewIntegerNumberProperty()).
 	AddProperty("created_at", esdsl.NewLongNumberProperty())
 
 var ConversationRepository = struct {
@@ -84,9 +99,20 @@ func NewConversationDoc(entity ConversationEntity, membersIds []string) Conversa
 	}
 }
 
-func NewConversationPb(entity ConversationEntity) pb.Conversation {
-	// TODO: Sept members to another rpc with pagination, find on conversation_participants
+func NewParticipantDoc(entity ParticipantEntity, membersIds []string) ParticipantDocument {
+	return ParticipantDocument{
+		ConversationId: entity.ConversationId,
+		UserId:         entity.UserId,
+		Status:         entity.Status,
+		CreatedAt:      int(entity.CreatedAt.UnixMilli()),
+	}
+}
+
+func NewConversationPb(entity ConversationEntity, joinedMembers []ParticipantEntity) pb.Conversation {
 	memberIds := []string{}
+	for _, member := range joinedMembers {
+		memberIds = append(memberIds, member.UserId.String())
+	}
 
 	return pb.Conversation{
 		Id:        entity.Id,

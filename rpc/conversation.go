@@ -18,6 +18,43 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func getConversationMembers(
+	ctx context.Context,
+	conversationId string, status models.ParticipantStatus,
+	pagerNumber int, pageSize int) ([]models.ParticipantEntity, error) {
+	esQuery := esdsl.NewBoolQuery().
+		Must(esdsl.NewMatchPhraseQuery("conversation_id", conversationId)).
+		Must(esdsl.NewMatchPhraseQuery("status", strconv.Itoa(int(status))))
+
+	esResp, esErr := consts.ElasticsearchClient.Search().
+		Index(consts.ParticipantIndex).
+		Query(esQuery).
+		Sort(esdsl.NewSortOptions().AddSortOption("created_at", esdsl.NewFieldSort(sortorder.Desc))).
+		From(pagerNumber * pageSize).
+		Size(pageSize).
+		Do(ctx)
+
+	if esErr != nil {
+		return nil, esErr
+	}
+
+	participantDocs := common.GetResponseDocs[models.ParticipantDocument](esResp)
+
+	participants := []models.ParticipantEntity{}
+	for _, doc := range participantDocs {
+		pk := map[string]interface{}{
+			"conversation_id": conversationId,
+			"user_id":         doc.UserId,
+			"status":          int(status),
+		}
+		if participant, err := models.ParticipantRepository.Get(pk); err == nil {
+			participants = append(participants, participant.(models.ParticipantEntity))
+		}
+	}
+
+	return participants, nil
+}
+
 func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.Conversation, error) {
 	var conversationId string
 	var ownerId gocql.UUID
@@ -60,13 +97,27 @@ func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversat
 			participant := models.ParticipantEntity{
 				ConversationId: conversation.Id,
 				UserId:         userId,
+				NickName:       "",
 				Status:         int(models.Joined),
+				CreatedAt:      time.Now(),
 			}
 			models.ParticipantRepository.Insert(participant)
+			participantDoc := models.NewParticipantDoc(participant, req.GetMemberIds())
+			consts.ElasticsearchClient.
+				Index(consts.ParticipantIndex).
+				Request(&participantDoc).
+				Do(ctx)
 		}
 	}
 
-	pbConversation := models.NewConversationPb(conversation)
+	// TODO: Adding to proto params
+	pbJoinedMembers, err := getConversationMembers(ctx, conversationId, models.Joined, 0, 50)
+	if err != nil {
+		fmt.Printf("cannot get conversation memebers %s %v", conversationId, err)
+		pbJoinedMembers = []models.ParticipantEntity{}
+	}
+
+	pbConversation := models.NewConversationPb(conversation, pbJoinedMembers)
 
 	return &pbConversation, nil
 }
@@ -77,7 +128,13 @@ func (s *Server) FindConversation(ctx context.Context, req *pb.FindConversationR
 		return nil, status.Error(codes.NotFound, codes.NotFound.String())
 	}
 
-	pbConversation := models.NewConversationPb(*conversation.(*models.ConversationEntity))
+	pbJoinedMembers, err := getConversationMembers(ctx, req.GetConversationId(), models.Joined, 0, 50)
+	if err != nil {
+		fmt.Printf("cannot get conversation memebers %s %v", req.GetConversationId(), err)
+		pbJoinedMembers = []models.ParticipantEntity{}
+	}
+	pbConversation := models.NewConversationPb(*conversation.(*models.ConversationEntity), pbJoinedMembers)
+
 	return &pbConversation, nil
 }
 
@@ -123,7 +180,13 @@ func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversa
 
 	var conversations []*pb.Conversation
 	for _, conv := range convs {
-		conversation := models.NewConversationPb(*conv)
+		pbJoinedMembers, err := getConversationMembers(ctx, conv.Id, models.Joined, 0, 50)
+		if err != nil {
+			fmt.Printf("cannot get conversation memebers %s %v", conv.Id, err)
+			pbJoinedMembers = []models.ParticipantEntity{}
+		}
+
+		conversation := models.NewConversationPb(*conv, pbJoinedMembers)
 		conversations = append(conversations, &conversation)
 	}
 

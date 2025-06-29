@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMAGE_NAME }}
@@ -11,6 +16,8 @@ env:
 
 jobs:
   build:
+    # This ensures the job only runs on push (to master) or on merged PRs to master
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
 
     steps:
