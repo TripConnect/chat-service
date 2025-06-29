@@ -48,7 +48,7 @@ func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversat
 		return nil, insertErr
 	}
 
-	conversationDoc := models.NewConversationDoc(conversation)
+	conversationDoc := models.NewConversationDoc(conversation, req.GetMemberIds())
 	consts.ElasticsearchClient.
 		Index(consts.ConversationIndex).
 		Id(conversationDoc.Id).
@@ -82,14 +82,15 @@ func (s *Server) FindConversation(ctx context.Context, req *pb.FindConversationR
 }
 
 func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	// TODO: Find joined conversation only
 	esQuery := esdsl.NewBoolQuery().
-		Must(esdsl.NewMatchPhraseQuery("type", strconv.Itoa(int(req.GetType().Number()))))
+		Must(
+			esdsl.NewMatchPhraseQuery("member_ids", req.GetUserId()),
+			esdsl.NewMatchPhraseQuery("type", strconv.Itoa(int(req.GetType().Number()))),
+		)
 
 	if len(req.GetTerm()) > 0 {
 		searchTerm := req.GetTerm()
-		esQuery.
-			Must(esdsl.NewWildcardQuery("name", searchTerm))
+		esQuery.Must(esdsl.NewWildcardQuery("name", searchTerm))
 	}
 
 	esResp, esErr := consts.ElasticsearchClient.Search().

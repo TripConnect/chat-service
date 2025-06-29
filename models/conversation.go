@@ -42,11 +42,11 @@ type ConversationDocument struct {
 }
 
 var ConversationDocumentMappings = esdsl.NewTypeMapping().
-	AddProperty("Id", esdsl.NewKeywordProperty()).
-	AddProperty("Name", esdsl.NewKeywordProperty()).
-	AddProperty("Type", esdsl.NewIntegerNumberProperty()).
-	AddProperty("MemberIds", esdsl.NewNestedProperty()).
-	AddProperty("CreatedAt", esdsl.NewLongNumberProperty())
+	AddProperty("id", esdsl.NewKeywordProperty()).
+	AddProperty("name", esdsl.NewKeywordProperty()).
+	AddProperty("type", esdsl.NewIntegerNumberProperty()).
+	AddProperty("member_ids", esdsl.NewNestedProperty()).
+	AddProperty("created_at", esdsl.NewLongNumberProperty())
 
 var ConversationRepository = struct {
 	recipes.CRUD
@@ -74,12 +74,13 @@ var ParticipantRepository = struct {
 	},
 }
 
-func NewConversationDoc(entity ConversationEntity) ConversationDocument {
+func NewConversationDoc(entity ConversationEntity, membersIds []string) ConversationDocument {
 	return ConversationDocument{
 		Id:        entity.Id,
 		Name:      entity.Name,
 		Type:      entity.Type,
 		CreatedAt: int(entity.CreatedAt.UnixMilli()),
+		MemberIds: membersIds,
 	}
 }
 

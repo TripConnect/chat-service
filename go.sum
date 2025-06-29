@@ -34,6 +34,10 @@ github.com/tripconnect/go-proto-lib v0.0.0-20250616194254-f7d8a295896a h1:p3tT76
 github.com/tripconnect/go-proto-lib v0.0.0-20250616194254-f7d8a295896a/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
 github.com/tripconnect/go-proto-lib v1.0.0 h1:eUBgBz3JdCB0WeD9un113PthHuQSzvgratcMXOQUkHc=
 github.com/tripconnect/go-proto-lib v1.0.0/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
+github.com/tripconnect/go-proto-lib v1.0.1 h1:TBleFpQ0LHEEjSoIjBkGDmuJicJuZW4I5Q6mLW0q19U=
+github.com/tripconnect/go-proto-lib v1.0.1/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
+github.com/tripconnect/go-proto-lib v1.0.2 h1:sL0HgxCMSQ+8LDeHbECz2JTYvdIjpCMzNm8+/jhyk5g=
+github.com/tripconnect/go-proto-lib v1.0.2/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/otel v1.35.0 h1:xKWKPxrxB6OtMCbmMY021CqC45J+3Onta9MqjhnusiQ=
