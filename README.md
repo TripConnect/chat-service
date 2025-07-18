@@ -4,10 +4,10 @@ The backend micro-service for chatting related
 # Starting up service
 ```sh
 go mod download # Install packages
-go run . # Run service server
+go run . # Start chat service server
 ```
 
-# Cheatsheet
+# Cheatsheet and Tips
 Verify build availability
 ```sh
 docker build -t chat-service:latest . # Build image
