@@ -4,13 +4,18 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/TripConnect/chat-service/consts"
+	"github.com/TripConnect/chat-service/helpers"
+	"github.com/gofrs/uuid/v5"
 )
 
-func SortedJoin(ids ...string) string {
-	sort.Slice(ids, func(i, j int) bool {
-		return ids[i] > ids[j]
+func BuildUUID(items ...string) uuid.UUID {
+	sort.Slice(items, func(i, j int) bool {
+		return items[i] > items[j]
 	})
 
-	return strings.Join(ids, consts.ElasticsearchSeparator)
+	sortedJoin := strings.Join(items, "-")
+	namespaceString, _ := helpers.ReadConfig[string]("uuid.namespace")
+	namespaceUUID, _ := uuid.FromString(namespaceString)
+	result := uuid.NewV5(namespaceUUID, sortedJoin)
+	return result
 }

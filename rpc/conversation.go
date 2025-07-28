@@ -20,10 +20,10 @@ import (
 
 func getConversationMembers(
 	ctx context.Context,
-	conversationId string, status models.ParticipantStatus,
+	conversationId gocql.UUID, status models.ParticipantStatus,
 	pagerNumber int, pageSize int) ([]models.ParticipantEntity, error) {
 	esQuery := esdsl.NewBoolQuery().
-		Must(esdsl.NewMatchPhraseQuery("conversation_id", conversationId)).
+		Must(esdsl.NewMatchPhraseQuery("conversation_id", conversationId.String())).
 		Must(esdsl.NewMatchPhraseQuery("status", strconv.Itoa(int(status))))
 
 	esResp, esErr := consts.ElasticsearchClient.Search().
@@ -56,17 +56,17 @@ func getConversationMembers(
 }
 
 func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversationRequest) (*pb.Conversation, error) {
-	var conversationId string
+	var conversationId gocql.UUID
 	var ownerId gocql.UUID
 
 	if req.GetType() == pb.ConversationType_PRIVATE {
-		conversationId = common.SortedJoin(req.GetMemberIds()...)
+		conversationId, _ = gocql.UUIDFromBytes(common.BuildUUID(req.GetMemberIds()...).Bytes())
 		ownerId, _ = gocql.ParseUUID("11111111-1111-1111-1111-111111111111")
 	} else {
 		if parsedOwnerId, ownerError := gocql.ParseUUID(req.GetOwnerId()); ownerError != nil {
 			return nil, status.Error(codes.InvalidArgument, "invalid ownerId")
 		} else {
-			conversationId = gocql.MustRandomUUID().String()
+			conversationId = gocql.MustRandomUUID()
 			ownerId = parsedOwnerId
 		}
 	}
@@ -88,7 +88,7 @@ func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversat
 	conversationDoc := models.NewConversationDoc(conversation, req.GetMemberIds())
 	consts.ElasticsearchClient.
 		Index(consts.ConversationIndex).
-		Id(conversationDoc.Id).
+		Id(conversationDoc.Id.String()).
 		Request(&conversationDoc).
 		Do(ctx)
 
@@ -128,7 +128,8 @@ func (s *Server) FindConversation(ctx context.Context, req *pb.FindConversationR
 		return nil, status.Error(codes.NotFound, codes.NotFound.String())
 	}
 
-	pbJoinedMembers, err := getConversationMembers(ctx, req.GetConversationId(), models.Joined, 0, 50)
+	// TODO: Move pagination of member to proto file
+	pbJoinedMembers, err := getConversationMembers(ctx, conversation.(*models.ConversationEntity).Id, models.Joined, 0, 50)
 	if err != nil {
 		fmt.Printf("cannot get conversation memebers %s %v", req.GetConversationId(), err)
 		pbJoinedMembers = []models.ParticipantEntity{}
@@ -164,7 +165,7 @@ func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversa
 
 	esConversations := common.GetResponseDocs[models.ConversationDocument](esResp)
 
-	var ids []string
+	var ids []gocql.UUID
 	for _, conv := range esConversations {
 		ids = append(ids, conv.Id)
 	}

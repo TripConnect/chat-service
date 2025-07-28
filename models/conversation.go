@@ -20,7 +20,7 @@ const (
 )
 
 type ConversationEntity struct {
-	Id        string     `cql:"id"`
+	Id        gocql.UUID `cql:"id"`
 	OwnerId   gocql.UUID `cql:"owner_id"`
 	Name      string     `cql:"name"`
 	Type      int        `cql:"type"`
@@ -28,7 +28,7 @@ type ConversationEntity struct {
 }
 
 type ParticipantEntity struct {
-	ConversationId string     `cql:"conversation_id"`
+	ConversationId gocql.UUID `cql:"conversation_id"`
 	NickName       string     `cql:"nick_name"`
 	UserId         gocql.UUID `cql:"user_id"`
 	Status         int        `cql:"status"`
@@ -36,15 +36,15 @@ type ParticipantEntity struct {
 }
 
 type ConversationDocument struct {
-	Id        string   `json:"id"`
-	Name      string   `json:"name"`
-	Type      int      `json:"type"`
-	MemberIds []string `json:"member_ids"`
-	CreatedAt int      `json:"created_at"`
+	Id        gocql.UUID `json:"id"`
+	Name      string     `json:"name"`
+	Type      int        `json:"type"`
+	MemberIds []string   `json:"member_ids"`
+	CreatedAt int        `json:"created_at"`
 }
 
 type ParticipantDocument struct {
-	ConversationId string     `json:"conversation_id"`
+	ConversationId gocql.UUID `json:"conversation_id"`
 	UserId         gocql.UUID `json:"user_id"`
 	Status         int        `json:"status"`
 	CreatedAt      int        `json:"created_at"`
@@ -115,7 +115,7 @@ func NewConversationPb(entity ConversationEntity, joinedMembers []ParticipantEnt
 	}
 
 	return pb.Conversation{
-		Id:        entity.Id,
+		Id:        entity.Id.String(),
 		Type:      pb.ConversationType(entity.Type),
 		Name:      entity.Name,
 		MemberIds: memberIds,
