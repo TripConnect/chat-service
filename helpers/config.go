@@ -1,114 +1,100 @@
 package helpers
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strings"
-	"sync"
 
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
-type ConfigHelper struct {
-	configs map[string]interface{}
-	once    sync.Once
+type Config struct {
+	Configs map[string]interface{}
 }
 
-var helper = &ConfigHelper{}
+var cfg *Config
 
-func ensureLoaded() {
-	helper.once.Do(func() {
-		err := godotenv.Load()
-		if err != nil {
-			log.Fatal("Error loading .env file")
-		}
+func init() {
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetConfigFile(".env")
+	_ = viper.ReadInConfig()
 
-		configHost := "config-service"
-		if os.Getenv("NODE_ENV") == "local" {
-			configHost = "localhost"
-		}
-		serviceName := os.Getenv("SERVICE_NAME")
-		if serviceName == "" {
-			serviceName = "unknown"
-		}
+	service := viper.GetString("SERVICE_NAME")
+	if service == "" {
+		log.Fatal("Missing required env SERVICE_NAME")
+	}
 
-		configURL := fmt.Sprintf("http://%s:31070/configs/%s", configHost, serviceName)
+	environment := viper.GetString("ENVIRONMENT")
+	if environment == "" {
+		log.Fatal("Missing required env ENVIRONMENT")
+	}
 
-		resp, err := http.Get(configURL)
-		if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			panic(fmt.Sprintf("Cannot load configurations for %s", serviceName))
-		}
-		defer resp.Body.Close()
+	var hostname string
+	switch strings.ToUpper(environment) {
+	case "LOCAL":
+		hostname = "localhost"
+	default:
+		hostname = "config-service"
+	}
+
+	remoteURL := fmt.Sprintf("http://%v:31070/configs/%s", hostname, service)
+
+	resp, err := http.Get(remoteURL)
+	if err != nil {
+		log.Fatalf("cannot fetch remote config: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("remote config HTTP error: %d %s", resp.StatusCode, body)
+	}
 
-		var response struct {
-			Data map[string]interface{} `json:"data"`
-		}
-		if err := json.Unmarshal(body, &response); err != nil {
-			panic("Failed to parse configuration JSON: " + err.Error())
-		}
-		helper.configs = response.Data
-	})
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("cannot read remote response body: %v", err)
+	}
+
+	viper.SetConfigType("json")
+	if err := viper.MergeConfig(bytes.NewBuffer(raw)); err != nil {
+		log.Fatalf("cannot merge remote config: %v", err)
+	}
+
+	cfg = &Config{Configs: viper.AllSettings()}
 }
 
-// ReadAll returns all loaded configs
 func ReadAll() map[string]interface{} {
-	ensureLoaded()
-	return helper.configs
+	return cfg.Configs
 }
 
 func ReadConfig[T any](path string) (T, error) {
-	ensureLoaded()
 	var zero T
-	valI, ok := deepLookup(helper.configs, path)
-	if !ok {
+	key := "data." + path
+	if !viper.IsSet(key) {
 		return zero, fmt.Errorf("config not found: %s", path)
 	}
 
-	switch v := valI.(type) {
-	case T:
-		return v, nil
+	var anyVal interface{}
+	switch (any)(zero).(type) {
+	case int:
+		anyVal = viper.GetInt(key)
+	case int64:
+		anyVal = viper.GetInt64(key)
 	case float64:
-		// Attempt conversion if T is an integer type
-		var converted any
-		switch any(zero).(type) {
-		case int:
-			converted = int(v)
-		case int64:
-			converted = int64(v)
-		default:
-			return zero, fmt.Errorf("cannot convert float64 to %T", zero)
-		}
-		return converted.(T), nil
+		anyVal = viper.GetFloat64(key)
+	case string:
+		anyVal = viper.GetString(key)
 	default:
-		return zero, fmt.Errorf("config at %s is not of expected type, got %T", path, valI)
+		anyVal = viper.Get(key)
 	}
-}
 
-// ReadConfigWithDefault reads the config value or returns a default value
-func ReadConfigWithDefault[T any](path string, defaultValue T) T {
-	val, err := ReadConfig[T](path)
-	if err != nil {
-		return defaultValue
+	cast, ok := anyVal.(T)
+	if !ok {
+		return zero, fmt.Errorf("type assertion failed for key %s: got %T", path, anyVal)
 	}
-	return val
-}
-
-// deepLookup navigates a nested map by dot path
-func deepLookup(m map[string]interface{}, path string) (interface{}, bool) {
-	parts := strings.Split(path, ".")
-	var current interface{} = m
-	for _, part := range parts {
-		switch typed := current.(type) {
-		case map[string]interface{}:
-			current = typed[part]
-		default:
-			return nil, false
-		}
-	}
-	return current, true
+	return cast, nil
 }
