@@ -2,15 +2,18 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/TripConnect/chat-service/common"
 	"github.com/TripConnect/chat-service/consts"
+	"github.com/TripConnect/chat-service/helpers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/gocql/gocql"
+	"github.com/segmentio/kafka-go"
 	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,17 +34,15 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 		CreatedAt:      time.Now(),
 	}
 
-	if insertError := models.ChatMessageRepository.Insert(chatMessage); insertError != nil {
-		fmt.Printf("failed to create chat message %v", insertError)
-		return nil, status.Error(codes.Internal, codes.Internal.String())
+	pendingTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
+	if valueBytes, err := json.Marshal(chatMessage); err == nil {
+		consts.KafkaPublisher.WriteMessages(ctx, kafka.Message{
+			Topic: pendingTopic,
+			Value: []byte(valueBytes),
+		})
+	} else {
+		fmt.Printf("Publish kafka message failed %v", err)
 	}
-
-	chatMessageDoc := models.NewChatMessageDoc(chatMessage)
-	consts.ElasticsearchClient.
-		Index(consts.ChatMessageIndex).
-		Id(chatMessageDoc.Id.String()).
-		Request(&chatMessageDoc).
-		Do(ctx)
 
 	chatMessagePb := models.NewChatMessagePb(chatMessage)
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/TripConnect/chat-service/consts"
 	"github.com/TripConnect/chat-service/helpers"
+	"github.com/TripConnect/chat-service/kafka/consumers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/TripConnect/chat-service/rpc"
 	"github.com/gocql/gocql"
@@ -72,6 +73,9 @@ func init() {
 	initCassandra()
 	// Elastic search initalization
 	initElasticsearch()
+
+	// Listen Kafka topics
+	go consumers.ListenPendingMessageQueue()
 }
 
 func main() {
