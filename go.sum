@@ -280,6 +280,8 @@ github.com/tripconnect/go-proto-lib v1.0.1 h1:TBleFpQ0LHEEjSoIjBkGDmuJicJuZW4I5Q
 github.com/tripconnect/go-proto-lib v1.0.1/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
 github.com/tripconnect/go-proto-lib v1.0.2 h1:sL0HgxCMSQ+8LDeHbECz2JTYvdIjpCMzNm8+/jhyk5g=
 github.com/tripconnect/go-proto-lib v1.0.2/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
+github.com/tripconnect/go-proto-lib v1.0.3 h1:eACK4IWK5sRvCmi/UvMbX4kyw6MhfagUOnNxxcRaWyg=
+github.com/tripconnect/go-proto-lib v1.0.3/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.1.2/go.mod h1:RT/sEzTbU5y00aCK8UOx6R7YryM0iF1N2MOmC3kKLN4=

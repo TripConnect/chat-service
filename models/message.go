@@ -28,6 +28,13 @@ type ChatMessageDocument struct {
 	CreatedAt      int        `json:"created_at"`
 }
 
+type KafkaPendingMessage struct {
+	CorrelationId  string     `json:"correlation_id"`
+	ConversationId string     `json:"conversation_id"`
+	FromUserId     gocql.UUID `json:"from_user_id"`
+	Content        string     `json:"content"`
+}
+
 var ChatMessageDocumentMappings = esdsl.NewTypeMapping().
 	AddProperty("id", esdsl.NewKeywordProperty()).
 	AddProperty("conversation_id", esdsl.NewKeywordProperty()).
@@ -46,6 +53,16 @@ var ChatMessageRepository = struct {
 			ChatMessageEntity{},
 		),
 	},
+}
+
+func NewChatMessageEntity(data KafkaPendingMessage) ChatMessageEntity {
+	return ChatMessageEntity{
+		Id:             gocql.MustRandomUUID(),
+		ConversationId: data.ConversationId,
+		FromUserId:     data.FromUserId,
+		Content:        data.Content,
+		CreatedAt:      time.Now(),
+	}
 }
 
 func NewChatMessageDoc(entity ChatMessageEntity) ChatMessageDocument {

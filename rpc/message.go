@@ -2,9 +2,7 @@ package rpc
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"time"
+	"log"
 
 	"github.com/TripConnect/chat-service/common"
 	"github.com/TripConnect/chat-service/consts"
@@ -13,38 +11,33 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/gocql/gocql"
-	"github.com/segmentio/kafka-go"
 	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
+func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.CreateChatMessageAck, error) {
 	fromUserId, fromUserIdErr := gocql.ParseUUID(req.FromUserId)
 
 	if fromUserIdErr != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid fromUserId")
 	}
 
-	chatMessage := models.ChatMessageEntity{
-		Id:             gocql.MustRandomUUID(),
+	chatMessage := &models.KafkaPendingMessage{
 		ConversationId: req.GetConversationId(),
 		FromUserId:     fromUserId,
 		Content:        req.GetContent(),
-		CreatedAt:      time.Now(),
 	}
 
 	pendingTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
-	if valueBytes, err := json.Marshal(chatMessage); err == nil {
-		consts.KafkaPublisher.WriteMessages(ctx, kafka.Message{
-			Topic: pendingTopic,
-			Value: []byte(valueBytes),
-		})
-	} else {
-		fmt.Printf("Publish kafka message failed %v", err)
+	if err := common.Publish(ctx, pendingTopic, chatMessage); err != nil {
+		log.Printf("Create chat message failed %s", err.Error())
+		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	chatMessagePb := models.NewChatMessagePb(chatMessage)
+	chatMessagePb := pb.CreateChatMessageAck{
+		CorrelationId: gocql.MustRandomUUID().String(),
+	}
 
 	return &chatMessagePb, nil
 }
