@@ -10,7 +10,7 @@ import (
 )
 
 func Publish(ctx context.Context, topic string, data interface{}) error {
-	// Publish message to Kafka, data should be pass with pointer
+	// Publish message to Kafka, data should be passed as pointer
 	if valueBytes, err := json.Marshal(data); err == nil {
 		consts.KafkaPublisher.WriteMessages(ctx, kafka.Message{
 			Topic: topic,
