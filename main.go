@@ -68,14 +68,17 @@ func initElasticsearch() {
 		Do(ctx)
 }
 
+func initKafka() {
+	go consumers.ListenPendingMessageQueue()
+}
+
 func init() {
 	// Cassandra initalization
 	initCassandra()
-	// Elastic search initalization
+	// Elasticsearch initalization
 	initElasticsearch()
-
-	// Listen Kafka topics
-	go consumers.ListenPendingMessageQueue()
+	// Kafka initalization
+	initKafka()
 }
 
 func main() {
