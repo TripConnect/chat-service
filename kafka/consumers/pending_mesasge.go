@@ -38,13 +38,12 @@ func ListenPendingMessageQueue() {
 			return
 		}
 
-		correlationId := kafkaPendingMessage.CorrelationId
-
-		if insertError := models.ChatMessageRepository.Insert(kafkaPendingMessage); insertError != nil {
+		// Saving related
+		entity := models.NewChatMessageEntity(kafkaPendingMessage)
+		if insertError := models.ChatMessageRepository.Insert(entity); insertError != nil {
 			fmt.Printf("failed to create chat message %v", insertError)
 			return
 		}
-		entity := models.NewChatMessageEntity(kafkaPendingMessage)
 		chatMessageDoc := models.NewChatMessageDoc(entity)
 		consts.ElasticsearchClient.
 			Index(consts.ChatMessageIndex).
@@ -52,11 +51,12 @@ func ListenPendingMessageQueue() {
 			Request(&chatMessageDoc).
 			Do(ctx)
 
-		newChatMessageTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-fct-new-message")
+		// Saga related
+		sentChatMessageTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-fct-sent-message")
 		ack := &pb.CreateChatMessageAck{
-			CorrelationId: correlationId,
+			CorrelationId: kafkaPendingMessage.CorrelationId,
 		}
-		if err := common.Publish(ctx, newChatMessageTopic, ack); err != nil {
+		if err := common.Publish(ctx, sentChatMessageTopic, ack); err != nil {
 			log.Printf("Saga chat message failed %s", err.Error())
 		}
 	}

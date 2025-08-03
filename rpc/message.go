@@ -24,6 +24,7 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 	}
 
 	chatMessage := &models.KafkaPendingMessage{
+		CorrelationId:  gocql.MustRandomUUID().String(),
 		ConversationId: req.GetConversationId(),
 		FromUserId:     fromUserId,
 		Content:        req.GetContent(),
@@ -35,11 +36,11 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	chatMessagePb := pb.CreateChatMessageAck{
-		CorrelationId: gocql.MustRandomUUID().String(),
+	chatMessagePb := &pb.CreateChatMessageAck{
+		CorrelationId: chatMessage.CorrelationId,
 	}
 
-	return &chatMessagePb, nil
+	return chatMessagePb, nil
 }
 
 func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
