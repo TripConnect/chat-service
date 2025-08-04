@@ -14,7 +14,7 @@ import (
 
 type ChatMessageEntity struct {
 	Id             gocql.UUID `cql:"id"`
-	ConversationId string     `cql:"conversation_id"`
+	ConversationId gocql.UUID `cql:"conversation_id"`
 	FromUserId     gocql.UUID `cql:"from_user_id"`
 	Content        string     `cql:"content"`
 	SentTime       time.Time  `cql:"sent_time"`
@@ -23,7 +23,7 @@ type ChatMessageEntity struct {
 
 type ChatMessageDocument struct {
 	Id             gocql.UUID `json:"id"`
-	ConversationId string     `json:"conversation_id"`
+	ConversationId gocql.UUID `json:"conversation_id"`
 	FromUserId     gocql.UUID `json:"from_user_id"`
 	Content        string     `json:"content"`
 	CreatedAt      int        `json:"created_at"`
@@ -31,10 +31,20 @@ type ChatMessageDocument struct {
 
 type KafkaPendingMessage struct {
 	CorrelationId  string     `json:"correlation_id"`
-	ConversationId string     `json:"conversation_id"`
+	ConversationId gocql.UUID `json:"conversation_id"`
 	FromUserId     gocql.UUID `json:"from_user_id"`
 	Content        string     `json:"content"`
 	SentTime       time.Time  `json:"sent_time"`
+}
+
+type KafkaSentMessage struct {
+	CorrelationId  string     `json:"correlation_id"`
+	Id             gocql.UUID `json:"id"`
+	ConversationId gocql.UUID `json:"conversation_id"`
+	FromUserId     gocql.UUID `json:"from_user_id"`
+	Content        string     `json:"content"`
+	SentTime       time.Time  `json:"sent_time"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 var ChatMessageDocumentMappings = esdsl.NewTypeMapping().
@@ -81,7 +91,7 @@ func NewChatMessageDoc(entity ChatMessageEntity) ChatMessageDocument {
 func NewChatMessagePb(entity ChatMessageEntity) pb.ChatMessage {
 	return pb.ChatMessage{
 		Id:             entity.Id.String(),
-		ConversationId: entity.ConversationId,
+		ConversationId: entity.ConversationId.String(),
 		FromUserId:     entity.FromUserId.String(),
 		Content:        entity.Content,
 		CreatedAt:      timestamppb.New(entity.CreatedAt),

@@ -11,7 +11,6 @@ import (
 	"github.com/TripConnect/chat-service/helpers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/segmentio/kafka-go"
-	pb "github.com/tripconnect/go-proto-lib/protos"
 )
 
 func ListenPendingMessageQueue() {
@@ -53,8 +52,14 @@ func ListenPendingMessageQueue() {
 
 		// Saga related
 		sentChatMessageTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-fct-sent-message")
-		ack := &pb.CreateChatMessageAck{
-			CorrelationId: kafkaPendingMessage.CorrelationId,
+		ack := &models.KafkaSentMessage{
+			CorrelationId:  kafkaPendingMessage.CorrelationId,
+			Id:             entity.Id,
+			ConversationId: entity.ConversationId,
+			FromUserId:     entity.FromUserId,
+			Content:        entity.Content,
+			SentTime:       entity.SentTime,
+			CreatedAt:      entity.CreatedAt,
 		}
 		if err := common.Publish(ctx, sentChatMessageTopic, ack); err != nil {
 			log.Printf("Saga chat message failed %s", err.Error())

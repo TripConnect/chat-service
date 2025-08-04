@@ -19,14 +19,19 @@ import (
 
 func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.CreateChatMessageAck, error) {
 	fromUserId, fromUserIdErr := gocql.ParseUUID(req.FromUserId)
+	convId, convIdErr := gocql.ParseUUID(req.FromUserId)
 
 	if fromUserIdErr != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid fromUserId")
 	}
 
+	if convIdErr != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid conversationId")
+	}
+
 	chatMessage := &models.KafkaPendingMessage{
 		CorrelationId:  gocql.MustRandomUUID().String(),
-		ConversationId: req.GetConversationId(),
+		ConversationId: convId,
 		FromUserId:     fromUserId,
 		Content:        req.GetContent(),
 		SentTime:       time.Now(),
