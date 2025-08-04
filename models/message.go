@@ -17,6 +17,7 @@ type ChatMessageEntity struct {
 	ConversationId string     `cql:"conversation_id"`
 	FromUserId     gocql.UUID `cql:"from_user_id"`
 	Content        string     `cql:"content"`
+	SentTime       time.Time  `cql:"sent_time"`
 	CreatedAt      time.Time  `cql:"created_at"`
 }
 
@@ -33,6 +34,7 @@ type KafkaPendingMessage struct {
 	ConversationId string     `json:"conversation_id"`
 	FromUserId     gocql.UUID `json:"from_user_id"`
 	Content        string     `json:"content"`
+	SentTime       time.Time  `json:"sent_time"`
 }
 
 var ChatMessageDocumentMappings = esdsl.NewTypeMapping().
@@ -61,6 +63,7 @@ func NewChatMessageEntity(data KafkaPendingMessage) ChatMessageEntity {
 		ConversationId: data.ConversationId,
 		FromUserId:     data.FromUserId,
 		Content:        data.Content,
+		SentTime:       data.SentTime,
 		CreatedAt:      time.Now(),
 	}
 }

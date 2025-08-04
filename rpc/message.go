@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/TripConnect/chat-service/common"
 	"github.com/TripConnect/chat-service/consts"
@@ -28,6 +29,7 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 		ConversationId: req.GetConversationId(),
 		FromUserId:     fromUserId,
 		Content:        req.GetContent(),
+		SentTime:       time.Now(),
 	}
 
 	pendingTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
