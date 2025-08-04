@@ -1,0 +1,63 @@
+package consumers
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+
+	"github.com/TripConnect/chat-service/common"
+	"github.com/TripConnect/chat-service/consts"
+	"github.com/TripConnect/chat-service/helpers"
+	"github.com/TripConnect/chat-service/models"
+	"github.com/segmentio/kafka-go"
+	pb "github.com/tripconnect/go-proto-lib/protos"
+)
+
+func ListenPendingMessageQueue() {
+	ctx := context.Background()
+	pendingTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
+
+	var listener = kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  []string{consts.KafkaConnection},
+		GroupID:  "chat-service-internal",
+		Topic:    pendingTopic,
+		MaxBytes: 10e6, // 10MB
+	})
+
+	for {
+		m, err := listener.ReadMessage(ctx)
+		if err != nil {
+			fmt.Printf("error while consume message %v", err)
+			break
+		}
+
+		var kafkaPendingMessage models.KafkaPendingMessage
+		if err := json.Unmarshal(m.Value, &kafkaPendingMessage); err != nil {
+			fmt.Printf("error while comsume pending queue %v", err)
+			return
+		}
+
+		// Saving related
+		entity := models.NewChatMessageEntity(kafkaPendingMessage)
+		if insertError := models.ChatMessageRepository.Insert(entity); insertError != nil {
+			fmt.Printf("failed to create chat message %v", insertError)
+			return
+		}
+		chatMessageDoc := models.NewChatMessageDoc(entity)
+		consts.ElasticsearchClient.
+			Index(consts.ChatMessageIndex).
+			Id(chatMessageDoc.Id.String()).
+			Request(&chatMessageDoc).
+			Do(ctx)
+
+		// Saga related
+		sentChatMessageTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-fct-sent-message")
+		ack := &pb.CreateChatMessageAck{
+			CorrelationId: kafkaPendingMessage.CorrelationId,
+		}
+		if err := common.Publish(ctx, sentChatMessageTopic, ack); err != nil {
+			log.Printf("Saga chat message failed %s", err.Error())
+		}
+	}
+}

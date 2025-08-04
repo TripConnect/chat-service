@@ -2,11 +2,12 @@ package rpc
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/TripConnect/chat-service/common"
 	"github.com/TripConnect/chat-service/consts"
+	"github.com/TripConnect/chat-service/helpers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
@@ -16,36 +17,32 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.ChatMessage, error) {
+func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.CreateChatMessageAck, error) {
 	fromUserId, fromUserIdErr := gocql.ParseUUID(req.FromUserId)
 
 	if fromUserIdErr != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid fromUserId")
 	}
 
-	chatMessage := models.ChatMessageEntity{
-		Id:             gocql.MustRandomUUID(),
+	chatMessage := &models.KafkaPendingMessage{
+		CorrelationId:  gocql.MustRandomUUID().String(),
 		ConversationId: req.GetConversationId(),
 		FromUserId:     fromUserId,
 		Content:        req.GetContent(),
-		CreatedAt:      time.Now(),
+		SentTime:       time.Now(),
 	}
 
-	if insertError := models.ChatMessageRepository.Insert(chatMessage); insertError != nil {
-		fmt.Printf("failed to create chat message %v", insertError)
+	pendingTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
+	if err := common.Publish(ctx, pendingTopic, chatMessage); err != nil {
+		log.Printf("Create chat message failed %s", err.Error())
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	chatMessageDoc := models.NewChatMessageDoc(chatMessage)
-	consts.ElasticsearchClient.
-		Index(consts.ChatMessageIndex).
-		Id(chatMessageDoc.Id.String()).
-		Request(&chatMessageDoc).
-		Do(ctx)
+	chatMessagePb := &pb.CreateChatMessageAck{
+		CorrelationId: chatMessage.CorrelationId,
+	}
 
-	chatMessagePb := models.NewChatMessagePb(chatMessage)
-
-	return &chatMessagePb, nil
+	return chatMessagePb, nil
 }
 
 func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
