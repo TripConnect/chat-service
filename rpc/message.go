@@ -19,7 +19,7 @@ import (
 
 func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessageRequest) (*pb.CreateChatMessageAck, error) {
 	fromUserId, fromUserIdErr := gocql.ParseUUID(req.FromUserId)
-	convId, convIdErr := gocql.ParseUUID(req.FromUserId)
+	convId, convIdErr := gocql.ParseUUID(req.ConversationId)
 
 	if fromUserIdErr != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid fromUserId")
