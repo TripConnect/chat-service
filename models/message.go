@@ -26,6 +26,7 @@ type ChatMessageDocument struct {
 	ConversationId gocql.UUID `json:"conversation_id"`
 	FromUserId     gocql.UUID `json:"from_user_id"`
 	Content        string     `json:"content"`
+	SentTime       int        `json:"sent_time"`
 	CreatedAt      int        `json:"created_at"`
 }
 
@@ -52,6 +53,7 @@ var ChatMessageDocumentMappings = esdsl.NewTypeMapping().
 	AddProperty("conversation_id", esdsl.NewKeywordProperty()).
 	AddProperty("from_user_id", esdsl.NewKeywordProperty()).
 	AddProperty("content", esdsl.NewKeywordProperty()).
+	AddProperty("sent_time", esdsl.NewLongNumberProperty()).
 	AddProperty("created_at", esdsl.NewLongNumberProperty())
 
 var ChatMessageRepository = struct {
@@ -84,6 +86,7 @@ func NewChatMessageDoc(entity ChatMessageEntity) ChatMessageDocument {
 		ConversationId: entity.ConversationId,
 		FromUserId:     entity.FromUserId,
 		Content:        entity.Content,
+		SentTime:       int(entity.SentTime.UnixMilli()),
 		CreatedAt:      int(entity.CreatedAt.UnixMilli()),
 	}
 }
@@ -94,6 +97,7 @@ func NewChatMessagePb(entity ChatMessageEntity) pb.ChatMessage {
 		ConversationId: entity.ConversationId.String(),
 		FromUserId:     entity.FromUserId.String(),
 		Content:        entity.Content,
-		CreatedAt:      timestamppb.New(entity.CreatedAt),
+		SentTime:       timestamppb.New(entity.SentTime),
+		CreateTime:     timestamppb.New(entity.CreatedAt),
 	}
 }

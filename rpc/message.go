@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -57,12 +58,12 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 
 	if req.GetBefore() != nil {
 		before := types.Float64(req.GetBefore().AsTime().UnixMilli())
-		esQuery.Must(esdsl.NewNumberRangeQuery("created_at").Lt(before))
+		esQuery.Must(esdsl.NewNumberRangeQuery("sent_time").Lt(before))
 	}
 
 	if req.GetAfter() != nil {
 		after := types.Float64(req.GetAfter().AsTime().UnixMilli())
-		esQuery.Must(esdsl.NewNumberRangeQuery("created_at").Gt(after))
+		esQuery.Must(esdsl.NewNumberRangeQuery("sent_time").Gt(after))
 	}
 
 	esResp, err := consts.ElasticsearchClient.Search().
@@ -80,8 +81,10 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 	var pbMessages []*pb.ChatMessage
 	for _, doc := range docs {
 		if message, err := models.ChatMessageRepository.Get(doc.Id); err == nil {
-			pbMessage := models.NewChatMessagePb(message.(models.ChatMessageEntity))
+			pbMessage := models.NewChatMessagePb(*message.(*models.ChatMessageEntity))
 			pbMessages = append(pbMessages, &pbMessage)
+		} else {
+			fmt.Printf("Failed to casting to pb %v", err)
 		}
 	}
 

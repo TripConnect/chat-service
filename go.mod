@@ -65,7 +65,7 @@ require (
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/spf13/viper/remote v1.20.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tripconnect/go-proto-lib v1.0.3 // indirect
+	github.com/tripconnect/go-proto-lib v1.0.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.15 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.15 // indirect
