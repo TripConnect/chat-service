@@ -44,11 +44,14 @@ func ListenPendingMessageQueue() {
 			return
 		}
 		chatMessageDoc := models.NewChatMessageDoc(entity)
-		consts.ElasticsearchClient.
+		_, saveEsErr := consts.ElasticsearchClient.
 			Index(consts.ChatMessageIndex).
 			Id(chatMessageDoc.Id.String()).
 			Request(&chatMessageDoc).
 			Do(ctx)
+		if saveEsErr != nil {
+			fmt.Printf("Failed to save es: %v", saveEsErr)
+		}
 
 		// Saga related
 		sentChatMessageTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-fct-sent-message")
