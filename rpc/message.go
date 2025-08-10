@@ -12,6 +12,7 @@ import (
 	"github.com/TripConnect/chat-service/models"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"
 	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc/codes"
@@ -69,6 +70,7 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
 		Query(esQuery).
+		Sort(esdsl.NewSortOptions().AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))).
 		Size(int(req.GetLimit())).
 		Do(ctx)
 
@@ -103,19 +105,20 @@ func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessa
 
 	if req.GetBefore() != nil {
 		esQuery.
-			Filter(esdsl.NewNumberRangeQuery("created_at").
+			Filter(esdsl.NewNumberRangeQuery("sent_time").
 				Gt(types.Float64(req.GetAfter().AsTime().UnixMilli())))
 	}
 
 	if req.GetAfter() != nil {
 		esQuery.
-			Filter(esdsl.NewNumberRangeQuery("created_at").
+			Filter(esdsl.NewNumberRangeQuery("sent_time").
 				Gt(types.Float64(req.GetAfter().AsTime().UnixMilli())))
 	}
 
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
 		Query(esQuery).
+		Sort(esdsl.NewSortOptions().AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))).
 		Size(int(req.GetLimit())).
 		Do(ctx)
 
@@ -128,7 +131,7 @@ func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessa
 	var pbMessages []*pb.ChatMessage
 	for _, doc := range docs {
 		if message, err := models.ChatMessageRepository.Get(doc.Id); err == nil {
-			pbMessage := models.NewChatMessagePb(message.(models.ChatMessageEntity))
+			pbMessage := models.NewChatMessagePb(*message.(*models.ChatMessageEntity))
 			pbMessages = append(pbMessages, &pbMessage)
 		}
 	}
