@@ -53,19 +53,22 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 }
 
 func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesRequest) (*pb.ChatMessages, error) {
-
-	esQuery := esdsl.NewBoolQuery().
-		Must(esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId()))
+	var musts []types.QueryVariant = []types.QueryVariant{
+		esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId()),
+	}
 
 	if req.GetBefore() != nil {
 		before := types.Float64(req.GetBefore().AsTime().UnixMilli())
-		esQuery.Must(esdsl.NewNumberRangeQuery("sent_time").Lt(before))
+		musts = append(musts, esdsl.NewNumberRangeQuery("sent_time").Lt(before))
 	}
 
 	if req.GetAfter() != nil {
 		after := types.Float64(req.GetAfter().AsTime().UnixMilli())
-		esQuery.Must(esdsl.NewNumberRangeQuery("sent_time").Gt(after))
+		musts = append(musts, esdsl.NewNumberRangeQuery("sent_time").Gt(after))
 	}
+
+	esQuery := esdsl.NewBoolQuery().
+		Must(musts...)
 
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
@@ -95,25 +98,26 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 }
 
 func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessagesRequest) (*pb.ChatMessages, error) {
-	esQuery := esdsl.NewBoolQuery().
-		Must(esdsl.NewWildcardQuery("content", req.GetTerm()))
+	var musts []types.QueryVariant = []types.QueryVariant{
+		esdsl.NewWildcardQuery("content", req.GetTerm()),
+	}
 
 	if req.GetConversationId() != "" {
-		esQuery.
-			Must(esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId()))
+		musts = append(musts, esdsl.NewMatchPhraseQuery("conversation_id", req.GetConversationId()))
 	}
 
 	if req.GetBefore() != nil {
-		esQuery.
-			Filter(esdsl.NewNumberRangeQuery("sent_time").
-				Gt(types.Float64(req.GetAfter().AsTime().UnixMilli())))
+		before := types.Float64(req.GetBefore().AsTime().UnixMilli())
+		musts = append(musts, esdsl.NewNumberRangeQuery("sent_time").Lt(before))
 	}
 
 	if req.GetAfter() != nil {
-		esQuery.
-			Filter(esdsl.NewNumberRangeQuery("sent_time").
-				Gt(types.Float64(req.GetAfter().AsTime().UnixMilli())))
+		after := types.Float64(req.GetAfter().AsTime().UnixMilli())
+		musts = append(musts, esdsl.NewNumberRangeQuery("sent_time").Gt(after))
 	}
+
+	esQuery := esdsl.NewBoolQuery().
+		Must(musts...)
 
 	esResp, err := consts.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).

@@ -11,6 +11,7 @@ import (
 	"github.com/TripConnect/chat-service/consts"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"
 	pb "github.com/tripconnect/go-proto-lib/protos"
@@ -23,8 +24,10 @@ func getConversationMembers(
 	conversationId gocql.UUID, status models.ParticipantStatus,
 	pagerNumber int, pageSize int) ([]models.ParticipantEntity, error) {
 	esQuery := esdsl.NewBoolQuery().
-		Must(esdsl.NewMatchPhraseQuery("conversation_id", conversationId.String())).
-		Must(esdsl.NewMatchPhraseQuery("status", strconv.Itoa(int(status))))
+		Must(
+			esdsl.NewMatchPhraseQuery("conversation_id", conversationId.String()),
+			esdsl.NewMatchPhraseQuery("status", strconv.Itoa(int(status))),
+		)
 
 	esResp, esErr := consts.ElasticsearchClient.Search().
 		Index(consts.ParticipantIndex).
@@ -140,16 +143,18 @@ func (s *Server) FindConversation(ctx context.Context, req *pb.FindConversationR
 }
 
 func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversationsRequest) (*pb.Conversations, error) {
-	esQuery := esdsl.NewBoolQuery().
-		Must(
-			esdsl.NewMatchPhraseQuery("member_ids", req.GetUserId()),
-			esdsl.NewMatchPhraseQuery("type", strconv.Itoa(int(req.GetType().Number()))),
-		)
+	var musts []types.QueryVariant = []types.QueryVariant{
+		esdsl.NewMatchPhraseQuery("member_ids", req.GetUserId()),
+		esdsl.NewMatchPhraseQuery("type", strconv.Itoa(int(req.GetType().Number()))),
+	}
 
 	if len(req.GetTerm()) > 0 {
 		searchTerm := req.GetTerm()
-		esQuery.Must(esdsl.NewWildcardQuery("name", searchTerm))
+		musts = append(musts, esdsl.NewWildcardQuery("name", searchTerm))
 	}
+
+	esQuery := esdsl.NewBoolQuery().
+		Must(musts...)
 
 	esResp, esErr := consts.ElasticsearchClient.Search().
 		Index(consts.ConversationIndex).
