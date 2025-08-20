@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/TripConnect/chat-service/common"
@@ -83,15 +84,23 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 
 	docs := common.GetResponseDocs[models.ChatMessageDocument](esResp)
 
-	var pbMessages []*pb.ChatMessage
-	for _, doc := range docs {
-		if message, err := models.ChatMessageRepository.Get(doc.Id); err == nil {
-			pbMessage := models.NewChatMessagePb(*message.(*models.ChatMessageEntity))
-			pbMessages = append(pbMessages, &pbMessage)
-		} else {
-			fmt.Printf("Failed to casting to pb %v", err)
-		}
+	pbMessages := make([]*pb.ChatMessage, len(docs))
+	var wg sync.WaitGroup
+	wg.Add(len(docs))
+
+	for i, doc := range docs {
+		go func(i int, docId gocql.UUID) {
+			defer wg.Done()
+			if message, err := models.ChatMessageRepository.Get(docId); err == nil {
+				pbMsg := models.NewChatMessagePb(*message.(*models.ChatMessageEntity))
+				pbMessages[i] = &pbMsg
+			} else {
+				fmt.Printf("Failed to get message for id %q: %v\n", docId, err)
+			}
+		}(i, doc.Id)
 	}
+
+	wg.Wait()
 
 	result := &pb.ChatMessages{Messages: pbMessages}
 	return result, nil
