@@ -296,6 +296,8 @@ github.com/tripconnect/go-common-utils v0.0.0-20250914063807-bd236738cea3 h1:BtJ
 github.com/tripconnect/go-common-utils v0.0.0-20250914063807-bd236738cea3/go.mod h1:5M1FUF1DdHezSPyJVrxSx7bwzxEKoGKj2MgKvGKqTt4=
 github.com/tripconnect/go-common-utils v0.0.0-20250914064305-e3f4c6dcdbc6 h1:vCyN+yWdhbvQyFc/sL2bXA39Yt+Exkt8DS3R9VAH/O0=
 github.com/tripconnect/go-common-utils v0.0.0-20250914064305-e3f4c6dcdbc6/go.mod h1:5M1FUF1DdHezSPyJVrxSx7bwzxEKoGKj2MgKvGKqTt4=
+github.com/tripconnect/go-common-utils v0.0.0-20250914071157-ff6d7e0941ea h1:Rusq/ORlYUe7+SyVGaZNTzbfTBM0QtiuGTW72an3R00=
+github.com/tripconnect/go-common-utils v0.0.0-20250914071157-ff6d7e0941ea/go.mod h1:5M1FUF1DdHezSPyJVrxSx7bwzxEKoGKj2MgKvGKqTt4=
 github.com/tripconnect/go-proto-lib v0.0.0-20250616185634-7228093f4f49 h1:lsCbz4Jvt+Y0wIbH6vmonGN9bext1VHyBmMsAZLVvgM=
 github.com/tripconnect/go-proto-lib v0.0.0-20250616185634-7228093f4f49/go.mod h1:BdpjmjWVelxO0m8WQdr68nqB4OWb6HqBAk0Uvsfhw2Y=
 github.com/tripconnect/go-proto-lib v0.0.0-20250616192151-0003e65f6dea h1:Sn1qFY/Jm7a3s7Bgm0Zjp6CA1G+wW9zYBCddySX4+AU=

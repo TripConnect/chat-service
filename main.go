@@ -12,6 +12,7 @@ import (
 	"github.com/TripConnect/chat-service/rpc"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
+	"github.com/tripconnect/go-common-utils/common"
 	"github.com/tripconnect/go-common-utils/helper"
 	"github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc"
@@ -54,15 +55,15 @@ func initCassandra() {
 func initElasticsearch() {
 	ctx := context.Background()
 	// Create indexes
-	consts.ElasticsearchClient.Indices.
+	common.ElasticsearchClient.Indices.
 		Create(consts.ConversationIndex).
 		Mappings(models.ConversationDocumentMappings).
 		Do(ctx)
-	consts.ElasticsearchClient.Indices.
+	common.ElasticsearchClient.Indices.
 		Create(consts.ChatMessageIndex).
 		Mappings(models.ChatMessageDocumentMappings).
 		Do(ctx)
-	consts.ElasticsearchClient.Indices.
+	common.ElasticsearchClient.Indices.
 		Create(consts.ParticipantIndex).
 		Mappings(models.ParticipantDocumentMappings).
 		Do(ctx)

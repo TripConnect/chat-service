@@ -44,7 +44,7 @@ func ListenPendingMessageQueue() {
 			return
 		}
 		chatMessageDoc := models.NewChatMessageDoc(entity)
-		_, saveEsErr := consts.ElasticsearchClient.
+		_, saveEsErr := common.ElasticsearchClient.
 			Index(consts.ChatMessageIndex).
 			Id(chatMessageDoc.Id.String()).
 			Request(&chatMessageDoc).

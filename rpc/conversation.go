@@ -29,7 +29,7 @@ func getConversationMembers(
 			esdsl.NewMatchPhraseQuery("status", strconv.Itoa(int(status))),
 		)
 
-	esResp, esErr := consts.ElasticsearchClient.Search().
+	esResp, esErr := common.ElasticsearchClient.Search().
 		Index(consts.ParticipantIndex).
 		Query(esQuery).
 		Sort(esdsl.NewSortOptions().AddSortOption("created_at", esdsl.NewFieldSort(sortorder.Desc))).
@@ -89,7 +89,7 @@ func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversat
 	}
 
 	conversationDoc := models.NewConversationDoc(conversation, req.GetMemberIds())
-	consts.ElasticsearchClient.
+	common.ElasticsearchClient.
 		Index(consts.ConversationIndex).
 		Id(conversationDoc.Id.String()).
 		Request(&conversationDoc).
@@ -106,7 +106,7 @@ func (s *Server) CreateConversation(ctx context.Context, req *pb.CreateConversat
 			}
 			models.ParticipantRepository.Insert(participant)
 			participantDoc := models.NewParticipantDoc(participant, req.GetMemberIds())
-			consts.ElasticsearchClient.
+			common.ElasticsearchClient.
 				Index(consts.ParticipantIndex).
 				Request(&participantDoc).
 				Do(ctx)
@@ -156,7 +156,7 @@ func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversa
 	esQuery := esdsl.NewBoolQuery().
 		Must(musts...)
 
-	esResp, esErr := consts.ElasticsearchClient.Search().
+	esResp, esErr := common.ElasticsearchClient.Search().
 		Index(consts.ConversationIndex).
 		Query(esQuery).
 		Sort(esdsl.NewSortOptions().AddSortOption("created_at", esdsl.NewFieldSort(sortorder.Desc))).

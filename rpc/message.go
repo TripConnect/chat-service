@@ -71,7 +71,7 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 	esQuery := esdsl.NewBoolQuery().
 		Must(musts...)
 
-	esResp, err := consts.ElasticsearchClient.Search().
+	esResp, err := common.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
 		Query(esQuery).
 		Sort(esdsl.NewSortOptions().AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))).
@@ -128,7 +128,7 @@ func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessa
 	esQuery := esdsl.NewBoolQuery().
 		Must(musts...)
 
-	esResp, err := consts.ElasticsearchClient.Search().
+	esResp, err := common.ElasticsearchClient.Search().
 		Index(consts.ChatMessageIndex).
 		Query(esQuery).
 		Sort(esdsl.NewSortOptions().AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))).
