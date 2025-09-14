@@ -7,20 +7,20 @@ import (
 	"net"
 
 	"github.com/TripConnect/chat-service/consts"
-	"github.com/TripConnect/chat-service/helpers"
 	"github.com/TripConnect/chat-service/kafka/consumers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/TripConnect/chat-service/rpc"
 	"github.com/gocql/gocql"
 	"github.com/kristoiv/gocqltable"
+	"github.com/tripconnect/go-common-utils/helper"
 	"github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc"
 )
 
 func initCassandra() {
-	host, hostErr := helpers.ReadConfig[string]("database.cassandra.host")
-	username, usernameErr := helpers.ReadConfig[string]("database.cassandra.username")
-	password, passwordErr := helpers.ReadConfig[string]("database.cassandra.password")
+	host, hostErr := helper.ReadConfig[string]("database.cassandra.host")
+	username, usernameErr := helper.ReadConfig[string]("database.cassandra.username")
+	password, passwordErr := helper.ReadConfig[string]("database.cassandra.password")
 
 	if hostErr != nil || usernameErr != nil || passwordErr != nil {
 		log.Fatal("failed to load cassandra config")
@@ -82,7 +82,7 @@ func init() {
 }
 
 func main() {
-	port, err := helpers.ReadConfig[int]("server.port")
+	port, err := helper.ReadConfig[int]("server.port")
 
 	if err != nil {
 		log.Fatalf("failed to load port config %v", err)

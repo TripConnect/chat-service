@@ -6,19 +6,19 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/TripConnect/chat-service/common"
 	"github.com/TripConnect/chat-service/consts"
-	"github.com/TripConnect/chat-service/helpers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/segmentio/kafka-go"
+	"github.com/tripconnect/go-common-utils/common"
+	"github.com/tripconnect/go-common-utils/helper"
 )
 
 func ListenPendingMessageQueue() {
 	ctx := context.Background()
-	pendingTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
+	pendingTopic, _ := helper.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
 
 	var listener = kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{consts.KafkaConnection},
+		Brokers:  []string{common.KafkaConnection},
 		GroupID:  "chat-service-internal",
 		Topic:    pendingTopic,
 		MaxBytes: 10e6, // 10MB
@@ -54,7 +54,7 @@ func ListenPendingMessageQueue() {
 		}
 
 		// Saga related
-		sentChatMessageTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-fct-sent-message")
+		sentChatMessageTopic, _ := helper.ReadConfig[string]("kafka.topic.chatting-fct-sent-message")
 		ack := &models.KafkaSentMessage{
 			CorrelationId:  kafkaPendingMessage.CorrelationId,
 			Id:             entity.Id,

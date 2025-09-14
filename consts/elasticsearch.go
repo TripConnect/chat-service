@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/TripConnect/chat-service/helpers"
 	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/tripconnect/go-common-utils/helper"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 var ElasticsearchClient *elasticsearch.TypedClient
 
 func init() {
-	host, hostErr := helpers.ReadConfig[string]("database.elasticsearch.host")
+	host, hostErr := helper.ReadConfig[string]("database.elasticsearch.host")
 
 	if hostErr != nil {
 		log.Fatalf("failed to load elasticsearch config")

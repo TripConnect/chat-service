@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/TripConnect/chat-service/common"
 	"github.com/TripConnect/chat-service/consts"
-	"github.com/TripConnect/chat-service/helpers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/esdsl"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"
+	"github.com/tripconnect/go-common-utils/common"
+	"github.com/tripconnect/go-common-utils/helper"
 	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -40,7 +40,7 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 		SentTime:       time.Now(),
 	}
 
-	pendingTopic, _ := helpers.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
+	pendingTopic, _ := helper.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
 	if err := common.Publish(ctx, pendingTopic, chatMessage); err != nil {
 		log.Printf("Create chat message failed %s", err.Error())
 		return nil, status.Error(codes.Internal, codes.Internal.String())
