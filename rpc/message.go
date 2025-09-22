@@ -33,8 +33,8 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 	}
 
 	chatMessage := &models.KafkaPendingMessage{
-		CorrelationId:  gocql.MustRandomUUID().String(),
 		ConversationId: convId,
+		MessageId:      gocql.MustRandomUUID(),
 		FromUserId:     fromUserId,
 		Content:        req.GetContent(),
 		SentTime:       time.Now(),
@@ -46,8 +46,9 @@ func (s *Server) CreateChatMessage(ctx context.Context, req *pb.CreateChatMessag
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
+	// TODO: Refactor using MessageId insteads
 	chatMessagePb := &pb.CreateChatMessageAck{
-		CorrelationId: chatMessage.CorrelationId,
+		CorrelationId: chatMessage.MessageId.String(),
 	}
 
 	return chatMessagePb, nil

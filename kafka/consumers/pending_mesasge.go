@@ -56,7 +56,6 @@ func ListenPendingMessageQueue() {
 		// Saga related
 		sentChatMessageTopic, _ := helper.ReadConfig[string]("kafka.topic.chatting-fct-sent-message")
 		ack := &models.KafkaSentMessage{
-			CorrelationId:  kafkaPendingMessage.CorrelationId,
 			Id:             entity.Id,
 			ConversationId: entity.ConversationId,
 			FromUserId:     entity.FromUserId,

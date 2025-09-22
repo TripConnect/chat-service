@@ -31,15 +31,14 @@ type ChatMessageDocument struct {
 }
 
 type KafkaPendingMessage struct {
-	CorrelationId  string     `json:"correlation_id"`
 	ConversationId gocql.UUID `json:"conversation_id"`
+	MessageId      gocql.UUID `json:"message_id"`
 	FromUserId     gocql.UUID `json:"from_user_id"`
 	Content        string     `json:"content"`
 	SentTime       time.Time  `json:"sent_time"`
 }
 
 type KafkaSentMessage struct {
-	CorrelationId  string     `json:"correlation_id"`
 	Id             gocql.UUID `json:"id"`
 	ConversationId gocql.UUID `json:"conversation_id"`
 	FromUserId     gocql.UUID `json:"from_user_id"`
