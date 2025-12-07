@@ -7,7 +7,7 @@ require (
 	github.com/gocql/gocql v1.7.0
 	github.com/kristoiv/gocqltable v0.0.0-20160119144122-50cb774da676
 	github.com/segmentio/kafka-go v0.4.49
-	github.com/tripconnect/go-common-utils v1.0.2
+	github.com/tripconnect/go-common-utils v1.0.3
 	github.com/tripconnect/go-proto-lib v1.0.4
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6

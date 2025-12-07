@@ -13,6 +13,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"
+	"github.com/tripconnect/go-common-utils/advance_search"
 	"github.com/tripconnect/go-common-utils/common"
 	pb "github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc/codes"
@@ -29,22 +30,20 @@ func getConversationMembers(
 			esdsl.NewMatchPhraseQuery("status", strconv.Itoa(int(status))),
 		)
 
-	esResp, esErr := common.ElasticsearchClient.Search().
-		Index(consts.ParticipantIndex).
+	searchResult, err := advance_search.NewAdvanceSearch[models.ParticipantDocument]().
+		Client(common.ElasticsearchClient).
 		Query(esQuery).
+		Index(consts.ParticipantIndex).
+		Page(pagerNumber, pageSize).
 		Sort(esdsl.NewSortOptions().AddSortOption("created_at", esdsl.NewFieldSort(sortorder.Desc))).
-		From(pagerNumber * pageSize).
-		Size(pageSize).
-		Do(ctx)
+		Search()
 
-	if esErr != nil {
-		return nil, esErr
+	if err != nil {
+		return nil, err
 	}
 
-	participantDocs := common.GetResponseDocs[models.ParticipantDocument](esResp)
-
 	participants := []models.ParticipantEntity{}
-	for _, doc := range participantDocs {
+	for _, doc := range searchResult.Data {
 		pk := map[string]interface{}{
 			"conversation_id": conversationId,
 			"user_id":         doc.UserId,
@@ -156,22 +155,22 @@ func (s *Server) SearchConversations(ctx context.Context, req *pb.SearchConversa
 	esQuery := esdsl.NewBoolQuery().
 		Must(musts...)
 
-	esResp, esErr := common.ElasticsearchClient.Search().
-		Index(consts.ConversationIndex).
-		Query(esQuery).
-		Sort(esdsl.NewSortOptions().AddSortOption("created_at", esdsl.NewFieldSort(sortorder.Desc))).
-		From(int(req.GetPageNumber() * req.GetPageSize())).
-		Size(int(req.GetPageSize())).
-		Do(ctx)
+	sort := esdsl.NewSortOptions().AddSortOption("created_at", esdsl.NewFieldSort(sortorder.Desc))
 
-	if esErr != nil {
-		log.Fatalf("Search failed: %v", esErr)
+	searchResult, err := advance_search.NewAdvanceSearch[models.ConversationDocument]().
+		Client(common.ElasticsearchClient).
+		Query(esQuery).
+		Index(consts.ConversationIndex).
+		Page(int(req.GetPageNumber()), int(req.GetPageSize())).
+		Sort(sort).
+		Search()
+
+	if err != nil {
+		log.Fatalf("Search failed: %v", err)
 	}
 
-	esConversations := common.GetResponseDocs[models.ConversationDocument](esResp)
-
 	var ids []gocql.UUID
-	for _, conv := range esConversations {
+	for _, conv := range searchResult.Data {
 		ids = append(ids, conv.Id)
 	}
 
