@@ -13,6 +13,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/sortorder"
 	"github.com/gocql/gocql"
+	"github.com/tripconnect/go-common-utils/advance_search"
 	"github.com/tripconnect/go-common-utils/common"
 	"github.com/tripconnect/go-common-utils/helper"
 	pb "github.com/tripconnect/go-proto-lib/protos"
@@ -72,18 +73,21 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 	esQuery := esdsl.NewBoolQuery().
 		Must(musts...)
 
-	esResp, err := common.ElasticsearchClient.Search().
-		Index(consts.ChatMessageIndex).
+	sort := esdsl.NewSortOptions().AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))
+
+	searchResult, err := advance_search.NewAdvanceSearch[models.ChatMessageDocument]().
+		Client(common.ElasticsearchClient).
 		Query(esQuery).
-		Sort(esdsl.NewSortOptions().AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))).
-		Size(int(req.GetLimit())).
-		Do(ctx)
+		Index(consts.ChatMessageIndex).
+		PageSize(int(req.GetLimit())).
+		Sort(sort).
+		Search()
 
 	if err != nil {
 		return nil, status.Error(codes.Internal, codes.Internal.String())
 	}
 
-	docs := common.GetResponseDocs[models.ChatMessageDocument](esResp)
+	docs := searchResult.Data
 
 	pbMessages := make([]*pb.ChatMessage, len(docs))
 	var wg sync.WaitGroup
@@ -108,8 +112,10 @@ func (s *Server) GetChatMessages(ctx context.Context, req *pb.GetChatMessagesReq
 }
 
 func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessagesRequest) (*pb.ChatMessages, error) {
-	var musts []types.QueryVariant = []types.QueryVariant{
-		esdsl.NewWildcardQuery("content", req.GetTerm()),
+	var musts []types.QueryVariant
+
+	if req.GetTerm() != "" {
+		musts = append(musts, esdsl.NewWildcardQuery("content", req.GetTerm()))
 	}
 
 	if req.GetConversationId() != "" {
@@ -126,30 +132,32 @@ func (s *Server) SearchChatMessages(ctx context.Context, req *pb.SearchChatMessa
 		musts = append(musts, esdsl.NewNumberRangeQuery("sent_time").Gt(after))
 	}
 
-	esQuery := esdsl.NewBoolQuery().
+	var esQuery types.QueryVariant = esdsl.NewBoolQuery().
 		Must(musts...)
 
-	esResp, err := common.ElasticsearchClient.Search().
-		Index(consts.ChatMessageIndex).
+	var sort types.SortCombinationsVariant = esdsl.NewSortOptions().
+		AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))
+
+	searchResult, err := advance_search.NewAdvanceSearch[models.ChatMessageDocument]().
+		Client(common.ElasticsearchClient).
 		Query(esQuery).
-		Sort(esdsl.NewSortOptions().AddSortOption("sent_time", esdsl.NewFieldSort(sortorder.Desc))).
-		Size(int(req.GetLimit())).
-		Do(ctx)
+		Index(consts.ChatMessageIndex).
+		PageSize(int(req.GetLimit())).
+		Sort(sort).
+		Search()
 
 	if err != nil {
-		return nil, status.Error(codes.Internal, codes.Internal.String())
+		return nil, err
 	}
 
-	docs := common.GetResponseDocs[models.ChatMessageDocument](esResp)
-
 	var pbMessages []*pb.ChatMessage
-	for _, doc := range docs {
+	for _, doc := range searchResult.Data {
 		if message, err := models.ChatMessageRepository.Get(doc.Id); err == nil {
 			pbMessage := models.NewChatMessagePb(*message.(*models.ChatMessageEntity))
 			pbMessages = append(pbMessages, &pbMessage)
 		}
 	}
 
-	result := &pb.ChatMessages{Messages: pbMessages}
-	return result, nil
+	response := &pb.ChatMessages{Messages: pbMessages}
+	return response, nil
 }
