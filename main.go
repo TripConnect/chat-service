@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/TripConnect/chat-service/consts"
 	"github.com/TripConnect/chat-service/kafka/consumers"
 	"github.com/TripConnect/chat-service/models"
 	"github.com/TripConnect/chat-service/rpc"
 	"github.com/gocql/gocql"
+	"github.com/google/uuid"
+	"github.com/hashicorp/consul/api"
 	"github.com/kristoiv/gocqltable"
 	"github.com/tripconnect/go-common-utils/common"
 	"github.com/tripconnect/go-common-utils/helper"
@@ -82,6 +87,64 @@ func init() {
 	initKafka()
 }
 
+func registryConsul(port int) {
+	consulConfig := api.DefaultConfig()
+	consulConfig.Address = "127.0.0.1:8500"
+
+	client, err := api.NewClient(consulConfig)
+	if err != nil {
+		log.Fatalf("Failed to create Consul client: %v", err)
+	}
+
+	// -------------------------------
+	// Service details (change these!)
+	// -------------------------------
+	serviceName := "chat-service"
+	serviceID := "chat-service-" + uuid.NewString()
+	serviceAddress := "127.0.0.1"
+	if hostname, err := os.Hostname(); err == nil {
+		serviceAddress = hostname
+	}
+
+	tags := []string{"version=1.0", "env=dev", "team=backend"}
+
+	check := &api.AgentServiceCheck{
+		HTTP:                           fmt.Sprintf("http://%s:%d/health", "localhost", port),
+		Interval:                       "10s",
+		Timeout:                        "5s",
+		DeregisterCriticalServiceAfter: "30s",
+	}
+
+	registration := &api.AgentServiceRegistration{
+		ID:      serviceID,
+		Name:    serviceName,
+		Address: serviceAddress,
+		Port:    port,
+		Tags:    tags,
+		Check:   check,
+	}
+
+	if err := client.Agent().ServiceRegister(registration); err != nil {
+		log.Fatalf("Failed to register service: %v", err)
+	}
+
+	log.Printf("Service '%s' (%s) registered successfully on port %d", serviceName, serviceID, port)
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutting down... Deregistering from Consul")
+
+	if err := client.Agent().ServiceDeregister(serviceID); err != nil {
+		log.Printf("Failed to deregister: %v", err)
+	} else {
+		log.Println("Successfully deregistered")
+	}
+
+	os.Exit(0)
+}
+
 func main() {
 	port, err := helper.ReadConfig[int]("server.port")
 
@@ -89,6 +152,8 @@ func main() {
 		log.Fatalf("failed to load port config %v", err)
 		return
 	}
+
+	registryConsul(port)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
