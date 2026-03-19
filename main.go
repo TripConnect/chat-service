@@ -21,6 +21,8 @@ import (
 	"github.com/tripconnect/go-common-utils/helper"
 	"github.com/tripconnect/go-proto-lib/protos"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func initCassandra() {
@@ -109,7 +111,7 @@ func registryConsul(port int) {
 	tags := []string{"version=1.0", "env=dev", "team=backend"}
 
 	check := &api.AgentServiceCheck{
-		HTTP:                           fmt.Sprintf("http://%s:%d/health", "localhost", port),
+		GRPC:                           fmt.Sprintf("%s:%d", serviceAddress, port),
 		Interval:                       "10s",
 		Timeout:                        "5s",
 		DeregisterCriticalServiceAfter: "30s",
@@ -153,7 +155,9 @@ func main() {
 		return
 	}
 
-	registryConsul(port)
+	go func() {
+		registryConsul(port)
+	}()
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -162,6 +166,9 @@ func main() {
 
 	var server = grpc.NewServer()
 	protos.RegisterChatServiceServer(server, &rpc.Server{})
+
+	healthServer := health.NewServer()
+	healthpb.RegisterHealthServer(server, healthServer)
 
 	log.Printf("server listening at %v", lis.Addr())
 	if err := server.Serve(lis); err != nil {
