@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/TripConnect/chat-service/consts"
@@ -98,20 +99,15 @@ func registryConsul(port int) {
 		log.Fatalf("Failed to create Consul client: %v", err)
 	}
 
-	// -------------------------------
-	// Service details (change these!)
-	// -------------------------------
 	serviceName := "chat-service"
 	serviceID := "chat-service-" + uuid.NewString()
-	serviceAddress := "127.0.0.1"
-	if hostname, err := os.Hostname(); err == nil {
-		serviceAddress = hostname
-	}
+	serviceAddress := "host.docker.internal"
 
 	tags := []string{"version=1.0", "env=dev", "team=backend"}
 
 	check := &api.AgentServiceCheck{
-		GRPC:                           fmt.Sprintf("%s:%d", serviceAddress, port),
+		GRPC:                           "host.docker.internal:" + strconv.Itoa(port),
+		GRPCUseTLS:                     false,
 		Interval:                       "10s",
 		Timeout:                        "5s",
 		DeregisterCriticalServiceAfter: "30s",
