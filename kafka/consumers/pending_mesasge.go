@@ -13,8 +13,7 @@ import (
 	"github.com/tripconnect/go-common-utils/helper"
 )
 
-func ListenPendingMessageQueue() {
-	ctx := context.Background()
+func ListenPendingMessageQueue(ctx context.Context) {
 	pendingTopic, _ := helper.ReadConfig[string]("kafka.topic.chatting-sys-internal-pending-queue")
 
 	var listener = kafka.NewReader(kafka.ReaderConfig{

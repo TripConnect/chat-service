@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/TripConnect/chat-service/consts"
 	"github.com/TripConnect/chat-service/kafka/consumers"
@@ -27,34 +28,28 @@ import (
 )
 
 func initCassandra() {
-	host, hostErr := helper.ReadConfig[string]("database.cassandra.host")
-	username, usernameErr := helper.ReadConfig[string]("database.cassandra.username")
-	password, passwordErr := helper.ReadConfig[string]("database.cassandra.password")
+	host, _ := helper.ReadConfig[string]("database.cassandra.host")
+	username, _ := helper.ReadConfig[string]("database.cassandra.username")
+	password, _ := helper.ReadConfig[string]("database.cassandra.password")
 
-	if hostErr != nil || usernameErr != nil || passwordErr != nil {
-		log.Fatal("failed to load cassandra config")
-	}
-
-	// Authentication
 	cluster := gocql.NewCluster(host)
 	cluster.Authenticator = gocql.PasswordAuthenticator{
 		Username: username,
 		Password: password,
 	}
+
 	session, err := cluster.CreateSession()
 	if err != nil {
 		log.Fatalf("Failed to connect to Cassandra: %v", err)
 	}
 	gocqltable.SetDefaultSession(session)
 
-	// Create keyspace
 	keyspace := gocqltable.NewKeyspace(consts.KeySpace)
 	_ = keyspace.Create(map[string]interface{}{
 		"class":              "SimpleStrategy",
 		"replication_factor": 1,
 	}, true)
 
-	// Create tables
 	models.ConversationRepository.TableInterface.Create()
 	models.ChatMessageRepository.TableInterface.Create()
 	models.ParticipantRepository.TableInterface.Create()
@@ -62,35 +57,40 @@ func initCassandra() {
 
 func initElasticsearch() {
 	ctx := context.Background()
-	// Create indexes
+
 	common.ElasticsearchClient.Indices.
 		Create(consts.ConversationIndex).
 		Mappings(models.ConversationDocumentMappings).
 		Do(ctx)
+
 	common.ElasticsearchClient.Indices.
 		Create(consts.ChatMessageIndex).
 		Mappings(models.ChatMessageDocumentMappings).
 		Do(ctx)
+
 	common.ElasticsearchClient.Indices.
 		Create(consts.ParticipantIndex).
 		Mappings(models.ParticipantDocumentMappings).
 		Do(ctx)
 }
 
-func initKafka() {
-	go consumers.ListenPendingMessageQueue()
+func initKafka(ctx context.Context) {
+	go consumers.ListenPendingMessageQueue(ctx)
 }
 
-func init() {
-	// Cassandra initalization
-	initCassandra()
-	// Elasticsearch initalization
-	initElasticsearch()
-	// Kafka initalization
-	initKafka()
+// ================= CONSUL =================
+
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	return conn.LocalAddr().(*net.UDPAddr).IP.String()
 }
 
-func registryConsul(port int) {
+func registerConsul(port int) (*api.Client, string) {
 	consulConfig := api.DefaultConfig()
 	consulConfig.Address = "127.0.0.1:8500"
 
@@ -99,15 +99,12 @@ func registryConsul(port int) {
 		log.Fatalf("Failed to create Consul client: %v", err)
 	}
 
-	serviceName := "chat-service"
 	serviceID := "chat-service-" + uuid.NewString()
-	serviceAddress := "host.docker.internal"
 
-	tags := []string{"version=1.0", "env=dev", "team=backend"}
+	fmt.Printf("Consul address: %s\n", getOutboundIP())
 
 	check := &api.AgentServiceCheck{
 		GRPC:                           "host.docker.internal:" + strconv.Itoa(port),
-		GRPCUseTLS:                     false,
 		Interval:                       "10s",
 		Timeout:                        "5s",
 		DeregisterCriticalServiceAfter: "30s",
@@ -115,10 +112,10 @@ func registryConsul(port int) {
 
 	registration := &api.AgentServiceRegistration{
 		ID:      serviceID,
-		Name:    serviceName,
-		Address: serviceAddress,
+		Name:    "chat-service",
+		Address: getOutboundIP(),
 		Port:    port,
-		Tags:    tags,
+		Tags:    []string{"version=1.0", "env=dev"},
 		Check:   check,
 	}
 
@@ -126,48 +123,86 @@ func registryConsul(port int) {
 		log.Fatalf("Failed to register service: %v", err)
 	}
 
-	log.Printf("Service '%s' (%s) registered successfully on port %d", serviceName, serviceID, port)
+	log.Printf("Registered to Consul with ID=%s", serviceID)
+	return client, serviceID
+}
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	<-quit
-	log.Println("Shutting down... Deregistering from Consul")
-
+func deregisterConsul(client *api.Client, serviceID string) {
+	log.Println("Deregistering from Consul...")
 	if err := client.Agent().ServiceDeregister(serviceID); err != nil {
 		log.Printf("Failed to deregister: %v", err)
 	} else {
-		log.Println("Successfully deregistered")
+		log.Println("Deregistered successfully")
 	}
-
-	os.Exit(0)
 }
 
-func main() {
-	port, err := helper.ReadConfig[int]("server.port")
+// ================= MAIN =================
 
+func main() {
+	// root context
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// init infra
+	initCassandra()
+	initElasticsearch()
+	initKafka(ctx)
+
+	port, err := helper.ReadConfig[int]("server.port")
 	if err != nil {
 		log.Fatalf("failed to load port config %v", err)
-		return
 	}
 
-	go func() {
-		registryConsul(port)
-	}()
+	// register consul
+	consulClient, serviceID := registerConsul(port)
 
+	// gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	var server = grpc.NewServer()
+	server := grpc.NewServer()
 	protos.RegisterChatServiceServer(server, &rpc.Server{})
 
 	healthServer := health.NewServer()
 	healthpb.RegisterHealthServer(server, healthServer)
 
-	log.Printf("server listening at %v", lis.Addr())
-	if err := server.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	// run gRPC
+	go func() {
+		log.Printf("gRPC server listening at %v", lis.Addr())
+		if err := server.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	// listen signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	log.Println("Shutdown signal received")
+
+	// cancel context → stop background jobs
+	cancel()
+
+	// graceful stop gRPC
+	done := make(chan struct{})
+	go func() {
+		server.GracefulStop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		log.Println("gRPC stopped gracefully")
+	case <-time.After(10 * time.Second):
+		log.Println("Force stopping gRPC...")
+		server.Stop()
 	}
+
+	// deregister consul
+	deregisterConsul(consulClient, serviceID)
+
+	log.Println("Shutdown complete")
 }
